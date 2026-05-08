@@ -10,6 +10,7 @@ import { PRIVATE_HOSPITALS } from '@/lib/constants'
 import DashboardQueue from '@/components/DashboardQueue'
 import CirilaAvatar from '@/components/CirilaAvatar'
 import { createClient } from '../lib/supabase/sb-server'
+import { calculatePatientScore } from '../lib/scoring'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,8 @@ export default async function DashboardPage() {
           severity: true, 
           status: true, 
           origin_hospital: true,
+          attempts_count: true,
+          is_private: true,
           logs: {
             where: { action: { in: ['REQUEST', 'REFUSAL'] } },
             orderBy: { timestamp: 'desc' }
@@ -59,13 +62,22 @@ export default async function DashboardPage() {
       })
     ])
 
+    const processedPatients = patientsWithLogs.map(p => ({
+      ...p,
+      score: calculatePatientScore(p)
+    })).sort((a, b) => {
+      if (a.score === -1 && b.score !== -1) return -1;
+      if (b.score === -1 && a.score !== -1) return 1;
+      return (b.score || 0) - (a.score || 0);
+    });
+
     const now = new Date()
     let totalWaitHours = 0
     let criticalCount = 0
     let ctiCount = 0;
     let clinicaCount = 0;
 
-    patientsWithLogs.forEach(p => {
+    processedPatients.forEach(p => {
       const hours = (now.getTime() - new Date(p.created_at).getTime()) / (1000 * 60 * 60)
       totalWaitHours += hours
       if (p.severity === 'SALA_VERMELHA') criticalCount++
@@ -111,7 +123,7 @@ export default async function DashboardPage() {
       }
     });
 
-    patientsWithLogs.forEach(p => {
+    processedPatients.forEach(p => {
       if (p.logs && p.logs.length > 0) {
         const lastLog = p.logs[0];
         const matchedHospital = PRIVATE_HOSPITALS.find(h => lastLog.details?.startsWith(h));
@@ -121,12 +133,12 @@ export default async function DashboardPage() {
       }
     });
 
-    const avgWaitHours = patientsWithLogs.length > 0
-      ? (totalWaitHours / patientsWithLogs.length).toFixed(1)
+    const avgWaitHours = processedPatients.length > 0
+      ? (totalWaitHours / processedPatients.length).toFixed(1)
       : 0;
 
     return (
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6 overflow-x-hidden min-w-0">
         
         {/* Header Simples e Profissional */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -288,7 +300,7 @@ export default async function DashboardPage() {
 
         {/* PATIENT QUEUE TABLE */}
         <div className="relative z-10">
-          <DashboardQueue patients={patientsWithLogs} user={dbUser} />
+          <DashboardQueue patients={processedPatients} user={dbUser} />
         </div>
 
       </div>

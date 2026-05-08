@@ -11,6 +11,7 @@ import AttachEvolutionModal from './AttachEvolutionModal'
 type Patient = {
   id: string
   name: string
+  score: number | null
   severity: string
   status: string
   origin_hospital: string
@@ -84,6 +85,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                 <tr className="border-b border-white/5">
                   <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Gravidade</th>
                   <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Paciente</th>
+                  <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Score</th>
                   <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Origem</th>
                   <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest">Espera</th>
                   <th className="py-3 px-2 text-slate-500 text-[10px] font-bold uppercase tracking-widest text-right">Ações</th>
@@ -114,6 +116,13 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                           {p.is_private ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
                           {p.is_private ? 'PERFIL PRIVADO' : 'PERFIL SUS'}
                         </button>
+                      </div>
+                    </td>
+                    <td className="py-4 px-2">
+                      <div className={`text-sm font-black ${
+                        (p.score || 0) >= 35 || p.score === -1 ? 'text-red-500 animate-pulse' : 'text-slate-300'
+                      }`}>
+                        {p.score === -1 ? 'VAGA ZERO' : p.score || '0'}
                       </div>
                     </td>
                     <td className="py-4 px-2 text-slate-400 text-xs">

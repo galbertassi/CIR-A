@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Menu, X, LayoutDashboard, ListTodo, Layers, CheckCircle, Building2, Users, Info, LogOut, User as UserIcon, Settings, Key } from 'lucide-react'
+import { Menu, X, LayoutDashboard, ListTodo, Layers, CheckCircle, Building2, Users, Info, LogOut, User as UserIcon, Settings } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -63,7 +63,7 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
         <div className="flex flex-1 pt-0">
           <aside className={`sidebar-main ${isMobileMenuOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="flex justify-center items-center mb-6 mt-4 px-4">
-              <div className="relative w-[140px] h-[70px]">
+              <div className="relative w-[120px] h-[60px]">
                 <Image
                   src="/logo.png"
                   alt="Logo CIR-A"
@@ -104,10 +104,7 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
               <div className="mt-4 mb-2 px-4">
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Administração</span>
               </div>
-              <Link href="/admin/keys" className={`sidebar-link ${pathname.startsWith('/admin/keys') ? 'sidebar-active' : ''}`}>
-                <Key size={20} className={pathname.startsWith('/admin/keys') ? 'text-[#00d8ff]' : 'text-[#00b4d8]'} />
-                <span>Controle de Chaves</span>
-              </Link>
+
             </nav>
 
             <div className="mt-auto flex flex-col gap-3">
@@ -186,7 +183,7 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
             </div>
 
             <footer className="mt-auto p-8 flex flex-col gap-4 border-t border-white/5 items-center text-center bg-slate-900/40">
-              <div className="relative w-[100px] h-[30px] opacity-40">
+              <div className="relative w-[120px] h-[36px] opacity-40">
                 <Image src="/logo.png" alt="Logo CIR-A" fill className="object-contain grayscale brightness-200" />
               </div>
               <div className="text-[9px] font-bold text-slate-600 uppercase tracking-[2px]">

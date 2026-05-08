@@ -312,11 +312,6 @@ export default function CirilaBotWidget() {
       return;
     }
 
-    if (payload === 'NAVIGATE_KEYS') {
-      router.push('/admin/keys');
-      return;
-    }
-
     if (payload === 'NAVIGATE_SOBREAVISO') {
       router.push('/admin/sobreaviso');
       return;
