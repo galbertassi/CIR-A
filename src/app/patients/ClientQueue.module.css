@@ -98,12 +98,12 @@
   padding: 1rem;
   border-radius: 16px;
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 12px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: calc(100% + 40px);
-  margin-left: -20px;
+  width: auto;
+  margin-left: 0;
   height: auto;
   min-height: 44px;
   background: rgba(15, 23, 42, 0.95);
@@ -328,4 +328,20 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.tableContainerNoScrollbar {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+  /* Esconde a barra de scroll mas mantém a funcionalidade */
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.tableContainerNoScrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

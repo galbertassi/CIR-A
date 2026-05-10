@@ -79,24 +79,43 @@ function LoginForm() {
     setExpression('thinking')
 
     const formData = new FormData(e.currentTarget)
-    
-    if (isLogin) {
-      const res = await login(formData)
-      if (res && !res.success) {
-        setError(res.error || "Erro ao fazer login.")
-        setExpression('alert')
+    const email = formData.get('email') as string
+
+    try {
+      if (isLogin) {
+        console.log(`[Login] Tentativa iniciada para: ${email}`);
+        const res = await login(formData)
+        console.log("[Login] Resposta recebida da Action:", res);
+        
+        if (res && !res.success) {
+          console.error("[Login] Falha no login:", res.error);
+          setError(res.error || "Erro ao fazer login.")
+          setExpression('alert')
+          setLoading(false)
+          setTimeout(() => setExpression('neutral'), 5000)
+        } else if (!res) {
+          // Se não houver retorno, pode ser que o redirect tenha acontecido (embora em actions async devamos ter retorno ou erro)
+          console.log("[Login] Sem retorno direto da Action (possível redirecionamento em curso)");
+        }
+      } else {
+        console.log(`[Signup] Criando conta para: ${email}`);
+        const res = await signup(formData)
+        console.log("[Signup] Resposta recebida:", res);
+        
+        if (res && !res.success) {
+          setError(res.error || "Erro ao criar conta.")
+          setExpression('alert')
+        } else {
+          setMsg('Conta criada com sucesso! Verifique seu e-mail para confirmar o acesso.')
+          setExpression('smiling')
+        }
         setLoading(false)
         setTimeout(() => setExpression('neutral'), 5000)
       }
-    } else {
-      const res = await signup(formData)
-      if (res && !res.success) {
-        setError(res.error || "Erro ao criar conta.")
-        setExpression('alert')
-      } else {
-        setMsg('Conta criada com sucesso! Seja bem-vindo ao CIR-A.')
-        setExpression('smiling')
-      }
+    } catch (err) {
+      console.error("[Auth] Erro capturado no handleSubmit:", err)
+      setError("Ocorreu um erro inesperado na comunicação com o servidor.")
+      setExpression('alert')
       setLoading(false)
       setTimeout(() => setExpression('neutral'), 5000)
     }
@@ -118,26 +137,31 @@ function LoginForm() {
         {/* === COLUNA ESQUERDA — BRANDING === */}
         <div className={styles.loginLeft}>
           <div className={styles.loginLeftInner}>
-            
-            {/* Bloco de Marca (Logo + Frase unidos, com espaçamento harmônico) */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-              <div className={`logo-container-glow ${styles.loginLogoWrapper}`} style={{ marginBottom: '-0.75rem' }}>
+
+            {/* Bloco de Marca (Logo + Título) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div className={`logo-container-glow ${styles.loginLogoWrapper}`}>
                 <Image
                   src="/logo.png"
                   alt="CIR-A Logo"
-                  width={220}
-                  height={70}
+                  width={100}
+                  height={100}
                   priority
-                  style={{ width: '100%', maxWidth: '220px', height: 'auto', filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.3))' }}
+                  className={styles.loginLogo}
+                  style={{
+                    width: '100px',
+                    height: 'auto',
+                    filter: 'drop-shadow(0 0 20px rgba(0,216,255,0.4))'
+                  }}
                 />
               </div>
 
               <div style={{ textAlign: 'center' }}>
-                <h1 className={styles.loginTitle} style={{ marginBottom: '1rem' }}> {/* Aumentado o espaço abaixo do nome */}
-                  Central Inteligente de<br />
-                  <span className={styles.loginTitleAccent}>Regulação Automatizada</span>
+                <h1 className={styles.loginTitle}>
+                  CENTRAL INTELIGENTE DE <br />
+                  <span className={styles.loginTitleAccent}>REGULAÇÃO AUTOMATIZADA</span>
                 </h1>
-                <p className={styles.loginSubtitle} style={{ maxWidth: '240px', margin: '0 auto', opacity: 0.85, lineHeight: '1.5' }}>
+                <p className={styles.loginSubtitle}>
                   Tecnologia de última geração a serviço da saúde pública de Volta Redonda.
                 </p>
               </div>
@@ -146,14 +170,14 @@ function LoginForm() {
             {/* FORMULÁRIO DE ACESSO */}
             <div className={styles.loginFormContainer}>
               <div className={styles.formToggleTabs}>
-                <button 
-                  className={`${styles.tabBtn} ${isLogin ? styles.tabBtnActive : ''}`} 
+                <button
+                  className={`${styles.tabBtn} ${isLogin ? styles.tabBtnActive : ''}`}
                   onClick={() => { setIsLogin(true); setError(null); setMsg(null); }}
                 >
                   <LogIn size={18} /> Entrar
                 </button>
-                <button 
-                  className={`${styles.tabBtn} ${!isLogin ? styles.tabBtnActive : ''}`} 
+                <button
+                  className={`${styles.tabBtn} ${!isLogin ? styles.tabBtnActive : ''}`}
                   onClick={() => { setIsLogin(false); setError(null); setMsg(null); }}
                 >
                   <UserPlus size={18} /> Criar Conta
@@ -164,11 +188,11 @@ function LoginForm() {
                 {!isLogin && (
                   <div className={styles.inputGroup}>
                     <label><User size={16} /> Nome Completo</label>
-                    <input 
-                      type="text" 
-                      name="name" 
-                      placeholder="Ex: Dr. João Silva" 
-                      required 
+                    <input
+                      type="text"
+                      name="name"
+                      placeholder="Ex: Dr. João Silva"
+                      required
                       onFocus={() => setExpression('thinking')}
                       onBlur={() => setExpression('neutral')}
                     />
@@ -178,11 +202,11 @@ function LoginForm() {
                   <label>
                     <Mail size={16} /> E-mail Institucional
                   </label>
-                  <input 
-                    type="email" 
-                    name="email" 
-                    placeholder="nome@voltaredonda.rj.gov.br" 
-                    required 
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="nome@voltaredonda.rj.gov.br"
+                    required
                     onFocus={() => setExpression('thinking')}
                     onBlur={() => setExpression('neutral')}
                   />
@@ -193,11 +217,11 @@ function LoginForm() {
                     <label>
                       <Mail size={16} /> Confirmar E-mail
                     </label>
-                    <input 
-                      type="email" 
-                      name="confirmEmail" 
-                      placeholder="Confirme seu e-mail institucional" 
-                      required 
+                    <input
+                      type="email"
+                      name="confirmEmail"
+                      placeholder="Confirme seu e-mail institucional"
+                      required
                       onFocus={() => setExpression('thinking')}
                       onBlur={() => setExpression('neutral')}
                     />
@@ -208,18 +232,18 @@ function LoginForm() {
                   <label>
                     <Lock size={16} /> Senha
                   </label>
-                  <input 
-                    type="password" 
-                    name="password" 
-                    placeholder="••••••••" 
-                    required 
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="••••••••"
+                    required
                     onFocus={() => setExpression('thinking')}
                     onBlur={() => setExpression('neutral')}
                   />
                   {isLogin && (
                     <div style={{ textAlign: 'right', marginTop: '-0.5rem' }}>
-                      <a 
-                        href="/auth/forgot-password" 
+                      <a
+                        href="/auth/forgot-password"
                         style={{ fontSize: '0.75rem', color: '#64748b', textDecoration: 'none', transition: 'color 0.2s' }}
                         onMouseOver={(e) => (e.currentTarget.style.color = '#00d8ff')}
                         onMouseOut={(e) => (e.currentTarget.style.color = '#64748b')}
@@ -235,11 +259,11 @@ function LoginForm() {
                     <label>
                       <Lock size={16} /> Confirmar Senha
                     </label>
-                    <input 
-                      type="password" 
-                      name="confirmPassword" 
-                      placeholder="Confirme sua senha" 
-                      required 
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Confirme sua senha"
+                      required
                       onFocus={() => setExpression('thinking')}
                       onBlur={() => setExpression('neutral')}
                     />
@@ -249,9 +273,9 @@ function LoginForm() {
                 {error && <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center' }}>{error}</div>}
                 {msg && <div style={{ color: '#10b981', fontSize: '0.85rem', textAlign: 'center' }}>{msg}</div>}
 
-                <button 
-                  type="submit" 
-                  className={styles.loginSubmitBtn} 
+                <button
+                  type="submit"
+                  className={styles.loginSubmitBtn}
                   disabled={loading}
                 >
                   {loading ? 'Processando...' : (isLogin ? 'Acessar o Sistema' : 'Confirmar Acesso')}
@@ -260,18 +284,18 @@ function LoginForm() {
               </form>
 
               <p className={styles.formHelpText}>
-                {isLogin 
-                  ? 'Utilize suas credenciais institucionais para acessar o painel.' 
+                {isLogin
+                  ? 'Utilize suas credenciais institucionais para acessar o painel.'
                   : 'Preencha os dados acima para criar sua conta de operador.'}
               </p>
             </div>
 
             {/* Rodapé — Créditos agrupados na base */}
             <footer className={styles.loginFooter}>
-              <span>SMSVR • Volta Redonda • Versão 1.5 Premium</span>
-              <a 
-                href="https://www.instagram.com/gabriel.albertassi" 
-                target="_blank" 
+              <span style={{ whiteSpace: 'nowrap' }}>SMSVR • Volta Redonda • Versão 1.5 Premium</span>
+              <a
+                href="https://www.instagram.com/gabriel.albertassi"
+                target="_blank"
                 rel="noopener noreferrer"
               >
                 Desenvolvido por Gabriel Albertassi
@@ -279,7 +303,7 @@ function LoginForm() {
             </footer>
           </div>
         </div>
-
+        
         {/* === COLUNA DIREITA — CIRILA HERO === */}
         <div className={styles.loginRight}>
           <div className={styles.loginRightContainer}>
@@ -291,22 +315,21 @@ function LoginForm() {
             <div className={`${styles.loginHolo} ${styles.holo5}`}><Sparkles size={14} /><span>Conte sempre comigo</span></div>
             <div className={`${styles.loginHolo} ${styles.holo6}`}><HeartPulse size={14} /><span>Sempre pronta para te ajudar</span></div>
 
-            <CirilaAvatar 
-              expression={expression} 
-              size="35%" 
-              className={expression} 
+            <CirilaAvatar
+              expression={expression}
+              size="550px"
+              className={`${styles.loginAvatar} ${expression}`}
             />
 
-            <div 
+            <div
               className={`${styles.loginCirilaSpeech} ${isTyping ? styles.typingIcon : ''}`}
-              style={{ bottom: '31%' }}
             >
-              <Image 
-                src="/cirila_3D_icon.png" 
-                alt="ícone Cirila" 
-                width={36} 
-                height={36} 
-                style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,216,255,0.4)' }} 
+              <Image
+                src="/cirila_3D_icon.png"
+                alt="ícone Cirila"
+                width={36}
+                height={36}
+                style={{ borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,216,255,0.4)' }}
               />
               <div>
                 <strong>Olá! Sou a Cirila.</strong>

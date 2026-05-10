@@ -1,25 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* CIR-A Dashboard Institucional - Cores Base */
   --background-deep: #071826;
   --background-slate: #0f172a;
   --background-navy: #0b2540;
-  
+
   --background: #071826;
   --surface: #0b192c;
   --surface-hover: #0f223b;
-  
+
   --cyan-institutional: #00b4d8;
-  
+
   /* Cores de Auditoria / NIR */
   --nir-cyan: #00b4d8;
   --nir-blue: #1e40af;
-  
+
   /* Texto & Bordas */
   --text-main: #f8fafc;
   --text-secondary: #94a3b8;
@@ -30,7 +30,7 @@
   --primary-hover: #1e40af;
   --danger: #ef4444;
   --warning: #f59e0b;
-  
+
   /* Cores de Gravidade */
   --sev-low: #3b82f6;
   --sev-medium: #eab308;
@@ -39,19 +39,14 @@
 }
 
 html {
-  font-size: 14px; /* Simulates ~87% global zoom */
+  font-size: 14px;
+  /* Simulates ~87% global zoom */
 }
 
 @media (max-width: 768px) {
   html {
     font-size: 13px;
   }
-}
-
-* {
-  box-sizing: border-box;
-  min-width: 0;
-  max-width: 100%;
 }
 
 body {
@@ -65,22 +60,486 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* BLINDAGEM DE LAYOUT — CIR-A */
-.main-viewport {
-  max-width: 100vw;
-  overflow-x: hidden;
+/* REATIVAÇÃO CONTROLADA DE ANIMAÇÕES E TRANSIÇÕES — CIR-A */
+* {
+  box-sizing: border-box;
   min-width: 0;
+  /* Essencial para evitar overflow em flex/grid */
 }
 
+/* Transições suaves globais para feedback premium */
+button,
+a,
+.card,
+.kpi-card,
+.sidebar-link {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Permitir transições mínimas em botões para feedback */
+button,
+a {
+  transition-duration: 0.1s !important;
+}
+
+html,
+body {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  position: relative !important;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  /* Chrome/Safari */
+}
+
+/* REMOVE SCROLLBAR GLOBAL */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  overflow-x: hidden;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Containers do app */
+main,
+div,
+section {
+  scrollbar-width: none;
+}
+
+main::-webkit-scrollbar,
+div::-webkit-scrollbar,
+section::-webkit-scrollbar {
+  display: none;
+}
+
+/* BLINDAGEM DE LAYOUT — CIR-A */
+.main-viewport {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  min-width: 0 !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Blindagem de containers internos */
+.kpi-card,
+.dashboard-grid,
+.kpi-grid,
+.main-viewport>div,
+section {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+.card {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  margin: 0;
+  padding: 0;
+  /* Fundo institucional com profundidade e padrão de grade */
+  background-color: #071426 !important;
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(0, 180, 216, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(30, 58, 138, 0.04) 0%, transparent 40%),
+    url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 10H90V90H10z' fill='none' stroke='rgba(255,255,255,0.02)' stroke-width='0.5'/%3E%3C/svg%3E") !important;
+  background-attachment: fixed !important;
+}
+
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* =====================================================
+   CIRILA CHAT — LAYOUT PREMIUM CENTRALIZADO
+===================================================== */
+
+.cirila-chat-container {
+  position: fixed !important;
+
+  top: 50% !important;
+  left: 50% !important;
+
+  transform: translate(-50%, -50%) !important;
+
+  width: 920px !important;
+  height: 92vh !important;
+
+  max-width: 94vw !important;
+  max-height: 94vh !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  overflow: hidden !important;
+
+  border-radius: 32px !important;
+
+  background:
+    linear-gradient(180deg,
+      rgba(6, 16, 34, 0.98) 0%,
+      rgba(5, 13, 28, 0.99) 100%) !important;
+
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+
+  border: 1px solid rgba(0, 217, 255, 0.12) !important;
+
+  box-shadow:
+    0 25px 90px rgba(0, 0, 0, 0.72),
+    0 0 40px rgba(0, 217, 255, 0.08) !important;
+
+  z-index: 999999 !important;
+}
+
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.cirila-chat-header {
+  height: 86px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+
+  padding: 20px 26px !important;
+
+  background:
+    linear-gradient(180deg,
+      rgba(5, 15, 30, 0.98),
+      rgba(5, 15, 30, 0.92)) !important;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+
+/* =====================================================
+   ÁREA DE MENSAGENS
+===================================================== */
+
+.cirila-chat-messages {
+  flex: 1 !important;
+
+  padding: 28px !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  scroll-behavior: smooth !important;
+
+  background:
+    radial-gradient(circle at top,
+      rgba(0, 153, 255, 0.05),
+      transparent 45%) !important;
+}
+
+
+/* =====================================================
+   BOLHAS DE MENSAGEM
+===================================================== */
+
+.cirila-chat-message {
+  max-width: 82% !important;
+
+  padding: 14px 18px !important;
+
+  border-radius: 18px !important;
+
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+
+  backdrop-filter: blur(12px) !important;
+}
+
+.cirila-chat-message.bot {
+  background: rgba(14, 32, 60, 0.92) !important;
+
+  border: 1px solid rgba(0, 217, 255, 0.08) !important;
+
+  color: #d9f3ff !important;
+}
+
+.cirila-chat-message.user {
+  background: linear-gradient(135deg,
+      rgba(0, 119, 255, 0.95),
+      rgba(0, 183, 255, 0.95)) !important;
+
+  color: white !important;
+}
+
+
+/* =====================================================
+   INPUT AREA
+===================================================== */
+
+.cirila-chat-input {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+
+  padding: 20px !important;
+
+  background: rgba(4, 12, 24, 0.96) !important;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+
+/* INPUT */
+
+.cirila-chat-input input,
+.cirila-chat-input textarea {
+  flex: 1 !important;
+
+  height: 58px !important;
+
+  border-radius: 18px !important;
+
+  border: 1px solid rgba(0, 217, 255, 0.12) !important;
+
+  background: rgba(10, 22, 40, 0.92) !important;
+
+  color: #ffffff !important;
+
+  padding: 0 18px !important;
+
+  font-size: 14px !important;
+
+  outline: none !important;
+}
+
+
+/* BOTÕES */
+
+.cirila-chat-input button {
+  width: 58px !important;
+  height: 58px !important;
+
+  border-radius: 18px !important;
+
+  border: none !important;
+
+  cursor: pointer !important;
+
+  background: linear-gradient(135deg,
+      #009dff,
+      #00d9ff) !important;
+
+  color: white !important;
+
+  transition: all 0.25s ease !important;
+}
+
+.cirila-chat-input button:hover {
+  transform: scale(1.05) !important;
+
+  box-shadow:
+    0 0 20px rgba(0, 217, 255, 0.35) !important;
+}
+
+
+/* =====================================================
+   BOTÃO FLUTUANTE
+===================================================== */
+
+.cirila-chat-toggle,
+.chat-toggle-button,
+.floating-chat-button {
+  width: 88px !important;
+  height: 88px !important;
+
+  min-width: 88px !important;
+  min-height: 88px !important;
+
+  border-radius: 9999px !important;
+
+  aspect-ratio: 1 / 1 !important;
+
+  overflow: hidden !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background:
+    linear-gradient(135deg,
+      rgba(0, 153, 255, 1),
+      rgba(0, 217, 255, 1)) !important;
+
+  box-shadow:
+    0 0 30px rgba(0, 217, 255, 0.35) !important;
+}
+
+
+/* =====================================================
+   SCROLLBAR HIDDEN
+===================================================== */
+
+.cirila-chat-messages::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.cirila-chat-messages {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+
+/* =====================================================
+   MOBILE
+===================================================== */
+
+@media (max-width: 768px) {
+
+  .cirila-chat-container {
+    width: 96vw !important;
+    height: 94vh !important;
+
+    border-radius: 24px !important;
+  }
+
+  .cirila-chat-header {
+    height: 72px !important;
+
+    padding: 16px !important;
+  }
+
+  .cirila-chat-input {
+    padding: 14px !important;
+  }
+
+  .cirila-chat-input input,
+  .cirila-chat-input textarea {
+    height: 52px !important;
+  }
+
+  .cirila-chat-input button {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+/* Regra segura para imagens — Evita que logos expandam involuntariamente */
 img {
   max-width: 100%;
   height: auto;
+  object-fit: contain;
+}
+
+/* Fix específico para logos institucionais para evitar expansão */
+img[src*="logo"]:not([class*="login"]):not(.sidebar-logo),
+img[src*="cirila"]:not([class*="login"]):not(.sidebar-logo),
+.logo-container img {
+  max-width: 120px !important;
+  max-height: 80px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* REMOÇÃO DEFINITIVA DE OVERLAYS E BACKGROUNDS GIGANTES */
+.dashboard-bg,
+.watermark,
+.fixed-overlay,
+.bg-giant-logo,
+[class*="background-photo"],
+[class*="fixed-bg"],
+[class*="hero-bg"],
+.bg-institutional-overlay,
+#background-image,
+.fullscreen-bg {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background-image: none !important;
+  position: fixed !important;
+  width: 0 !important;
+  height: 0 !important;
+  z-index: -9999 !important;
+}
+
+/* RESTAURAÇÃO DE EFEITOS "PREMIUM" EM WIDGETS */
+.cirila-chat-container,
+.cirila-trigger-btn>div,
+.interactive-cirila-panel,
+[class*="backdrop-blur"],
+[class*="blur-"] {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  background-color: rgba(11, 25, 44, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Garantir legibilidade no Chat */
+.cirila-chat-container input,
+.cirila-chat-container textarea {
+  color: #ffffff !important;
+}
+
+.cirila-chat-container strong {
+  color: #00d8ff;
+}
+
+.cirila-chat-container span,
+.cirila-chat-container div {
+  color: inherit;
+}
+
+.cirila-chat-container {
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5) !important;
+  /* Overlay de sombra sutil, não expansivo */
+}
+
+/* Estilos para as bolhas de chat para garantir legibilidade */
+.chat-bubble-user {
+  background: rgba(0, 180, 216, 0.15) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 180, 216, 0.3) !important;
+}
+
+.chat-bubble-ai {
+  background: rgba(15, 23, 42, 0.6) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 
 
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Outfit', sans-serif;
   letter-spacing: -0.02em;
 }
@@ -104,21 +563,36 @@ body {
    Institutional Layout Elements
    ════════════════════════════════ */
 .card {
-  background: #0b192c;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  background: rgba(11, 25, 44, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 1px 0 rgba(0, 180, 216, 0.08);
 }
 
 .kpi-card {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: none;
   padding: 1.5rem;
-  border-radius: 12px;
-  transition: all 0.2s;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 180, 216, 0.06),
+    0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 .kpi-card:hover {
-  border-color: rgba(0, 180, 216, 0.3);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 180, 216, 0.25),
+    0 10px 25px rgba(0, 180, 216, 0.1);
+  transform: translateY(-4px);
+  background: rgba(15, 23, 42, 0.85);
 }
 
 .bg-institutional {
@@ -126,7 +600,9 @@ body {
 }
 
 /* Base Styles */
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: 'Inter', sans-serif;
 }
 
@@ -141,17 +617,18 @@ input, select, textarea {
   outline: none;
   transition: all 0.3s ease;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
-  text-transform: uppercase; /* Força visualmente a caixa alta */
+  text-transform: uppercase;
+  /* Força visualmente a caixa alta */
 }
 
 .input:focus {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.2);
-  background-color: rgba(255,255,255,0.09);
+  background-color: rgba(255, 255, 255, 0.09);
 }
 
 /* Garante que inputs e textareas nativos sigam a regra se não usarem a classe .input, mas não o chat */
-input[type="text"]:not(.chat-input), 
+input[type="text"]:not(.chat-input),
 input[type="search"]:not(.chat-input),
 textarea:not(.chat-input) {
   text-transform: uppercase;
@@ -209,20 +686,20 @@ textarea:not(.chat-input) {
 
 .btn-outline {
   background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(0,180,216,0.2);
+  border: 1px solid rgba(0, 180, 216, 0.2);
   color: var(--text-main);
   backdrop-filter: blur(4px);
 }
 
 .btn-outline:hover:not(:disabled) {
   background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(0,180,216,0.4);
+  border-color: rgba(0, 180, 216, 0.4);
 }
 
 .btn-danger {
   background-color: rgba(239, 68, 68, 0.15);
   color: #fca5a5;
-  border: 1px solid rgba(239,68,68,0.3);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -234,7 +711,7 @@ textarea:not(.chat-input) {
 select.input {
   color: #f1f5f9;
   background-color: rgba(8, 20, 40, 0.92);
-  border-color: rgba(0,180,216,0.25);
+  border-color: rgba(0, 180, 216, 0.25);
 }
 
 select.input option {
@@ -272,12 +749,26 @@ td select option {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-.badge-CLINICA_MEDICA { background-color: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); }
-.badge-CTI { background-color: rgba(249,115,22,0.15); color: #fdba74; border: 1px solid rgba(249, 115, 22, 0.3); }
-.badge-SALA_VERMELHA { background-color: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-CLINICA_MEDICA {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-CTI {
+  background-color: rgba(249, 115, 22, 0.15);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.badge-SALA_VERMELHA {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
 
 /* Status Badges */
 .badge-status {
@@ -287,15 +778,38 @@ td select option {
   font-size: 0.75rem;
   font-weight: 600;
 }
-.badge-status.WAITING { background-color: rgba(71,85,105,0.3); color: #94a3b8; }
-.badge-status.OFFERED { background-color: rgba(37,99,235,0.2); color: #93c5fd; }
-.badge-status.TRANSFERRED { background-color: rgba(5,150,105,0.2); color: #6ee7b7; }
-.badge-status.CANCELLED { background-color: rgba(220,38,38,0.2); color: #fca5a5; }
+
+.badge-status.WAITING {
+  background-color: rgba(71, 85, 105, 0.3);
+  color: #94a3b8;
+}
+
+.badge-status.OFFERED {
+  background-color: rgba(37, 99, 235, 0.2);
+  color: #93c5fd;
+}
+
+.badge-status.TRANSFERRED {
+  background-color: rgba(5, 150, 105, 0.2);
+  color: #6ee7b7;
+}
+
+.badge-status.CANCELLED {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
 
 /* Micro-Animations */
 @keyframes fadeInSlideUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-in {
@@ -334,9 +848,19 @@ td select option {
 
 .sidebar-link:hover {
   background-color: rgba(0, 180, 216, 0.1);
-  color: #00b4d8;
-  transform: translateX(4px);
-  border-right: 2px solid #00b4d8;
+  color: #00d8ff;
+  transform: translateX(6px);
+  border-left: 3px solid #00d8ff;
+  border-right: none;
+  box-shadow: 0 0 15px rgba(0, 180, 216, 0.1);
+  text-shadow: 0 0 8px rgba(0, 216, 255, 0.4);
+}
+
+.sidebar-active {
+  background-color: rgba(0, 180, 216, 0.15) !important;
+  color: #00d8ff !important;
+  border-left: 4px solid #00d8ff !important;
+  box-shadow: inset 4px 0 15px rgba(0, 180, 216, 0.1);
 }
 
 /* only-print: oculto na tela, visível ao imprimir */
@@ -368,7 +892,8 @@ td select option {
   }
 
   /* ---- FUNDO E TEXTO GERAL ---- */
-  html, body {
+  html,
+  body {
     background: #ffffff !important;
     background-image: none !important;
     color: #111827 !important;
@@ -417,7 +942,12 @@ td select option {
   }
 
   /* ---- TÍTULOS — eliminar gradiente webkit ---- */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: #0f172a !important;
     background: none !important;
     -webkit-background-clip: unset !important;
@@ -427,7 +957,14 @@ td select option {
   }
 
   /* ---- TEXTO GERAL ---- */
-  p, span, div, td, th, li, small, strong {
+  p,
+  span,
+  div,
+  td,
+  th,
+  li,
+  small,
+  strong {
     color: #1e293b !important;
     background: transparent !important;
   }
@@ -500,14 +1037,40 @@ td select option {
     display: inline-block !important;
   }
 
-  .badge-SALA_VERMELHA { border-color: #dc2626 !important; color: #dc2626 !important; }
-  .badge-CTI { border-color: #ea580c !important; color: #ea580c !important; }
-  .badge-CLINICA_MEDICA { border-color: #2563eb !important; color: #2563eb !important; }
+  .badge-SALA_VERMELHA {
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+  }
 
-  .badge-status.TRANSFERRED { border-color: #16a34a !important; color: #16a34a !important; }
-  .badge-status.OFFERED { border-color: #2563eb !important; color: #2563eb !important; }
-  .badge-status.CANCELLED { border-color: #dc2626 !important; color: #dc2626 !important; }
-  .badge-status.WAITING { border-color: #64748b !important; color: #475569 !important; }
+  .badge-CTI {
+    border-color: #ea580c !important;
+    color: #ea580c !important;
+  }
+
+  .badge-CLINICA_MEDICA {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+  }
+
+  .badge-status.TRANSFERRED {
+    border-color: #16a34a !important;
+    color: #16a34a !important;
+  }
+
+  .badge-status.OFFERED {
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+  }
+
+  .badge-status.CANCELLED {
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+  }
+
+  .badge-status.WAITING {
+    border-color: #64748b !important;
+    color: #475569 !important;
+  }
 
   /* ---- RETIRAR ANIMAÇÕES E SOMBRAS ---- */
   .animate-fade-in {
@@ -546,8 +1109,8 @@ td select option {
 .sidebar-main {
   width: 260px;
   background: #0f172a;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1.5rem 1rem;
+  border-right: none;
+  padding: 0.75rem 0.5rem;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -557,10 +1120,11 @@ td select option {
   z-index: 50;
   transition: all 0.3s ease;
   overflow-y: auto;
+  box-shadow: 1px 0 15px rgba(0, 0, 0, 0.3), 1px 0 1px rgba(0, 180, 216, 0.04);
 }
 
 .sidebar-main img {
-  max-width: 140px;
+  max-width: 240px;
   height: auto;
   object-fit: contain;
 }
@@ -568,13 +1132,14 @@ td select option {
 .sidebar-link {
   color: #b0bec5;
   text-decoration: none;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 12px;
   transition: all 0.25s ease;
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  font-weight: 500; /* Mais fino conforme solicitado */
+  gap: 1.2rem;
+  font-weight: 500;
+  /* Mais fino conforme solicitado */
   font-size: 0.95rem;
   letter-spacing: -0.1px;
   margin-bottom: 0.2rem;
@@ -589,8 +1154,16 @@ td select option {
   display: none;
 }
 
-.sidebar-main.collapsed .logo-container-glow {
-  height: 40px !important;
+.sidebar-main.collapsed .logo-container-glow,
+.sidebar-main.collapsed .sidebar-logo-container {
+  width: 50px !important;
+  height: 25px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.sidebar-main.collapsed .sidebar-logo {
+  max-width: 50px !important;
 }
 
 .main-viewport {
@@ -606,7 +1179,7 @@ td select option {
   flex-direction: column;
 }
 
-.sidebar-main.collapsed + .main-viewport {
+.sidebar-main.collapsed+.main-viewport {
   margin-left: 80px;
 }
 
@@ -634,18 +1207,19 @@ td select option {
     top: 0;
     height: 100vh;
     transform: translateX(-100%);
-    width: 280px !important; /* Mobile volta ao padrão seguro */
+    width: 280px !important;
+    /* Mobile volta ao padrão seguro */
   }
-  
+
   .sidebar-main.open {
     transform: translateX(0);
   }
-  
+
   .main-viewport {
     margin-left: 0 !important;
     padding: 1.5rem;
   }
-  
+
   .mobile-toggle {
     display: flex;
   }
@@ -654,28 +1228,31 @@ td select option {
 @media (max-width: 1024px) {
   .sidebar-main {
     top: 0;
-    height: 100dvh; /* Altura dinâmica para mobile - Resolve o problema das barras do navegador */
+    height: 100dvh;
+    /* Altura dinâmica para mobile - Resolve o problema das barras do navegador */
     transform: translateX(-100%);
     width: 280px !important;
-    z-index: 5000; /* Força estar acima de tudo */
+    z-index: 5000;
+    /* Força estar acima de tudo */
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 3rem; /* Espaço extra garantido no rodapé */
+    padding-bottom: 3rem;
+    /* Espaço extra garantido no rodapé */
   }
-  
+
   .sidebar-main.open {
     transform: translateX(0);
   }
-  
+
   .main-viewport {
     margin-left: 0 !important;
     padding: 1.25rem !important;
   }
-  
+
   .mobile-toggle {
     display: flex;
   }
-  
+
   .no-mobile {
     display: none !important;
   }
@@ -684,15 +1261,20 @@ td select option {
 .mobile-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   z-index: 140;
   animation: fade-in 0.3s ease;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Specific fix for jumbled cards */
@@ -727,12 +1309,41 @@ td select option {
   }
 }
 
-.table-container {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  margin-bottom: 1rem;
+/* BLINDAGEM DE SCROLLBARS - FILA INTELIGENTE */
+.table-container,
+.table-container table {
+  overflow: visible !important;
 }
+
+.table-container {
+  overflow-y: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.table-container::-webkit-scrollbar,
+.table-container *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Forçar cores do chat para evitar texto branco no branco */
+.cirila-chat-container,
+.cirila-chat-container * {
+  text-transform: none !important;
+  /* Evita caixa alta indesejada no chat */
+}
+
+.cirila-chat-container input,
+.cirila-chat-container textarea,
+.cirila-chat-container .chat-input {
+  color: #ffffff !important;
+  background-color: #0f172a !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+}
+
+
 .logo-hover:hover {
   transform: scale(1.05);
 }
@@ -742,30 +1353,67 @@ td select option {
    ════════════════════════════════════ */
 
 @keyframes toast-slide-in {
-  0% { transform: translateX(120%) scale(0.9); opacity: 0; }
-  70% { transform: translateX(-5%) scale(1.02); opacity: 1; }
-  100% { transform: translateX(0) scale(1); opacity: 1; }
+  0% {
+    transform: translateX(120%) scale(0.9);
+    opacity: 0;
+  }
+
+  70% {
+    transform: translateX(-5%) scale(1.02);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes toast-slide-out {
-  from { transform: translateX(0) scale(1); opacity: 1; }
-  to { transform: translateX(120%) scale(0.9); opacity: 0; }
+  from {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(120%) scale(0.9);
+    opacity: 0;
+  }
 }
 
 @keyframes toast-progress {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
 }
 
 @keyframes shimmer {
-  0% { transform: translateX(-100%) skewX(-15deg); }
-  50%, 100% { transform: translateX(200%) skewX(-15deg); }
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+
+  50%,
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+  }
 }
 
 @keyframes notification-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(0, 216, 255, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(0, 216, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(0, 216, 255, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 216, 255, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 216, 255, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 216, 255, 0);
+  }
 }
 
 .premium-glass {
@@ -798,12 +1446,10 @@ td select option {
   left: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 255, 255, 0.03),
-    transparent
-  );
+  background: linear-gradient(to right,
+      transparent,
+      rgba(255, 255, 255, 0.03),
+      transparent);
   animation: shimmer 4s infinite;
   pointer-events: none;
 }
@@ -827,6 +1473,17 @@ td select option {
   transform: translateY(-1px);
 }
 
+.table-container::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+.table-container,
+.custom-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
 .toast-progress-bar {
   position: absolute;
   bottom: 0;
@@ -847,6 +1504,15 @@ td select option {
 }
 
 .notifications-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+.notifications-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 216, 255, 0.3);
+}
+
+notifications-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }

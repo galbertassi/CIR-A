@@ -84,8 +84,8 @@ export default async function PacientesTodosPage() {
                     }}>
                       
                       <td style={{ padding: '1.25rem 1.5rem' }}>
-                        <div style={{ fontWeight: 600, fontSize: '1.1rem' }}>{p.name}</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.85rem', fontFamily: 'Inter, system-ui, sans-serif', textTransform: 'uppercase', letterSpacing: '0.02em', color: '#e2e8f0' }}>{p.name}</div>
+                        <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '4px', fontFamily: 'Inter, system-ui, sans-serif' }}>
                           {p.diagnosis}
                         </div>
                       </td>
@@ -141,8 +141,8 @@ export default async function PacientesTodosPage() {
                         )}
                       </td>
 
-                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}>
+                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center', minWidth: '160px' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'nowrap' }}>
                           <ReturnAction patientId={p.id} currentStatus={p.status} />
                           {isAdmin && (
                             <DeletePatientButton patientId={p.id} patientName={p.name} />

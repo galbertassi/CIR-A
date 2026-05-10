@@ -57,7 +57,7 @@ export default async function PatientsPage() {
     });
 
     return (
-      <div className="space-y-8 animate-in fade-in duration-700 relative overflow-x-hidden min-w-0">
+      <div className="w-full space-y-8 animate-in fade-in duration-700 relative overflow-x-hidden min-w-0">
         <div className="absolute inset-0 technical-grid pointer-events-none opacity-20 -m-8" />
         
         {/* HEADER */}

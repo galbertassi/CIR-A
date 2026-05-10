@@ -37,13 +37,13 @@ export default async function TransferidosPage() {
     return (
       <div className="space-y-8 animate-in fade-in duration-700 relative">
         <div className="absolute inset-0 technical-grid pointer-events-none opacity-20 -m-8" />
-        
+
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] font-outfit">ARQUIVO MORTO • HISTÓRICO DE SAÍDAS</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] font-outfit">ARQUIVO CLÍNICO • HISTÓRICO DE SAÍDAS</span>
             </div>
             <h1 className="text-5xl font-black text-white tracking-tighter leading-none font-outfit">
               Fluxo de <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-400 via-slate-200 to-slate-500">Desfechos</span>
@@ -95,20 +95,20 @@ export default async function TransferidosPage() {
 
                 {patients.map((p, idx) => {
                   const eventLog = p.logs && p.logs.length > 0 ? p.logs[0] : null;
-                  
+
                   let destination = 'Não registrado';
                   if (p.status === 'ALTA') destination = 'Alta Médica';
                   else if (p.status === 'FALECIMENTO') destination = 'Falecimento';
                   else if (p.status === 'CANCELLED') destination = 'Cancelado';
                   else if (eventLog && eventLog.action === 'TRANSFER') destination = eventLog.details || '';
 
-                  const transferDateToUse = p.transfer_date ? new Date(p.transfer_date) : 
-                                            (eventLog && eventLog.action === 'TRANSFER' ? new Date(eventLog.timestamp) : null);
-                  
-                  const outcomeDateToUse = p.outcome_date ? new Date(p.outcome_date) : 
-                                           (p.status === 'ALTA' || p.status === 'FALECIMENTO' ? 
-                                              (eventLog && eventLog.action === 'FINAL_STATUS' ? new Date(eventLog.timestamp) : null) 
-                                              : null);
+                  const transferDateToUse = p.transfer_date ? new Date(p.transfer_date) :
+                    (eventLog && eventLog.action === 'TRANSFER' ? new Date(eventLog.timestamp) : null);
+
+                  const outcomeDateToUse = p.outcome_date ? new Date(p.outcome_date) :
+                    (p.status === 'ALTA' || p.status === 'FALECIMENTO' ?
+                      (eventLog && eventLog.action === 'FINAL_STATUS' ? new Date(eventLog.timestamp) : null)
+                      : null);
 
                   return (
                     <tr key={p.id} className="hover:bg-white/5 transition-colors group">

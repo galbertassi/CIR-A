@@ -25,17 +25,17 @@ function CustomPieLegend({ data, total }: { data: PatientDest[]; total: number }
         const barWidth = Math.max(pct * 0.8, 4);
         return (
           <div key={entry.name} className="flex items-center gap-3">
-            <div 
-              className="w-2 h-2 rounded-full flex-shrink-0" 
-              style={{ background: color, boxShadow: `0 0 10px ${color}80` }} 
+            <div
+              className="w-2 h-2 rounded-full flex-shrink-0"
+              style={{ background: color, boxShadow: `0 0 10px ${color}80` }}
             />
             <div className="flex-1 text-[11px] font-black text-slate-400 truncate uppercase tracking-tighter">
               {entry.name}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <div 
-                className="h-1 rounded-full opacity-30" 
-                style={{ width: `${barWidth}px`, background: color }} 
+              <div
+                className="h-1 rounded-full opacity-30"
+                style={{ width: `${barWidth}px`, background: color }}
               />
               <span className="text-[11px] font-black text-white min-w-[30px] text-right">
                 {pct}%

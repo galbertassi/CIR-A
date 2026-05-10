@@ -13,14 +13,14 @@ export default function PatientForm() {
     setLoading(true)
 
     const formData = new FormData(e.currentTarget)
-    
+
     // Normalização: Forçar CAIXA ALTA em todos os campos de texto do cadastro
     for (const [key, value] of Array.from(formData.entries())) {
       if (typeof value === 'string' && key !== 'file') {
         formData.set(key, value.toUpperCase());
       }
     }
-    
+
     // Log para depuração no frontend
     console.log('Enviando dados para o servidor via API Route (Caixa Alta Normalizada)...');
 
@@ -38,7 +38,7 @@ export default function PatientForm() {
         console.error('Resposta não-JSON recebida:', await response.text());
         throw new Error('O servidor retornou uma resposta inesperada (não-JSON).');
       }
-      
+
       if (response.ok && result.success) {
         console.log('Cadastro realizado com sucesso:', result);
         router.push('/patients');
@@ -96,7 +96,7 @@ export default function PatientForm() {
         <label className="label">Diagnóstico Inicial</label>
         <input name="diagnosis" required className="input" placeholder="Ex: Pneumonia aspirativa" style={{ textTransform: 'uppercase' }} />
       </div>
-      
+
       <div>
         <label className="label">Observações Clínicas / Pedido</label>
         <textarea name="observations" className="input" rows={3} placeholder="Detalhes secundários..." style={{ textTransform: 'uppercase' }} />
@@ -104,10 +104,10 @@ export default function PatientForm() {
 
       <div>
         <label className="label">Malote Digital (PDF, Imagens, Documentos)</label>
-        <input 
-          type="file" 
-          name="file" 
-          className="input" 
+        <input
+          type="file"
+          name="file"
+          className="input"
           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
           style={{ padding: '8px' }}
         />
@@ -117,11 +117,11 @@ export default function PatientForm() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(234, 179, 8, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.1)' }}>
-        <input 
-          type="checkbox" 
-          name="is_private" 
-          id="is_private" 
-          style={{ width: '18px', height: '18px', cursor: 'pointer' }} 
+        <input
+          type="checkbox"
+          name="is_private"
+          id="is_private"
+          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
         />
         <label htmlFor="is_private" style={{ color: '#fbbf24', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
           Paciente possui Convênio / Perfil para Rede Privada

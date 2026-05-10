@@ -37,12 +37,12 @@ export default async function DashboardPage() {
       prisma.patient.count({ where: { status: 'TRANSFERRED' } }),
       prisma.patient.findMany({
         where: { status: { in: ['WAITING', 'OFFERED'] } },
-        select: { 
-          id: true, 
-          name: true, 
-          created_at: true, 
-          severity: true, 
-          status: true, 
+        select: {
+          id: true,
+          name: true,
+          created_at: true,
+          severity: true,
+          status: true,
           origin_hospital: true,
           attempts_count: true,
           is_private: true,
@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       }),
       prisma.bedAvailability.findMany(),
       prisma.log.findMany({
-        where: { 
+        where: {
           action: 'TRANSFER',
           timestamp: { gte: thirtyDaysAgo }
         },
@@ -138,10 +138,10 @@ export default async function DashboardPage() {
       : 0;
 
     return (
-      <div className="max-w-7xl mx-auto space-y-6 overflow-x-hidden min-w-0">
-        
+      <div className="w-full space-y-6 overflow-x-hidden min-w-0 relative z-10">
+
         {/* Header Simples e Profissional */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4" style={{ paddingTop: '1.0rem', marginBottom: '1.2rem' }}>
           <div>
             <h1 className="text-3xl font-bold text-white">Painel Geral CIR-A</h1>
             <p className="text-slate-400 text-sm">Central de Regulação de Acesso • SMSVR / DCRAA</p>
@@ -163,8 +163,8 @@ export default async function DashboardPage() {
           <div>
             <h2 className="text-xs font-bold text-slate-100 uppercase tracking-wider">Status Operacional</h2>
             <p className="text-slate-400 text-[10px] font-medium">
-              {criticalCount > 2 
-                ? `ALERTA: ${criticalCount} casos de risco máximo detectados.` 
+              {criticalCount > 2
+                ? `ALERTA: ${criticalCount} casos de risco máximo detectados.`
                 : "Fluxo de regulação normal."}
             </p>
           </div>
@@ -172,32 +172,32 @@ export default async function DashboardPage() {
 
         {/* MAIN DASHBOARD CONTENT */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 relative z-10">
-          
+
           {/* LEFT: KPIs & Charts (8 Cols) */}
           <div className="xl:col-span-8 space-y-8">
-            
-        {/* Grid de KPIs - 4 colunas fixas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Aguardando Vaga</p>
-            <h3 className="text-3xl font-bold text-white mt-2">{totalWaiting}</h3>
-          </div>
 
-          <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Vagas Solicitadas</p>
-            <h3 className="text-3xl font-bold text-white mt-2">{totalOffered}</h3>
-          </div>
+            {/* Grid de KPIs - 4 colunas fixas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Aguardando Vaga</p>
+                <h3 className="text-3xl font-bold text-white mt-2">{totalWaiting}</h3>
+              </div>
 
-          <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Risco Máximo</p>
-            <h3 className={`text-3xl font-bold mt-2 ${criticalCount > 0 ? 'text-red-500' : 'text-white'}`}>{criticalCount}</h3>
-          </div>
+              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Vagas Solicitadas</p>
+                <h3 className="text-3xl font-bold text-white mt-2">{totalOffered}</h3>
+              </div>
 
-          <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total Transferidos</p>
-            <h3 className="text-3xl font-bold text-white mt-2">{totalTransferred}</h3>
-          </div>
-        </div>
+              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Risco Máximo</p>
+                <h3 className={`text-3xl font-bold mt-2 ${criticalCount > 0 ? 'text-red-500' : 'text-white'}`}>{criticalCount}</h3>
+              </div>
+
+              <div className="bg-slate-900/40 border border-white/5 p-6 rounded-xl">
+                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Total Transferidos</p>
+                <h3 className="text-3xl font-bold text-white mt-2">{totalTransferred}</h3>
+              </div>
+            </div>
 
             {/* CHARTS CONTAINER */}
             <div className="card p-8">
@@ -212,14 +212,12 @@ export default async function DashboardPage() {
             </div>
 
             {/* PRIVATE HOSPITALS TREND */}
-            <div className="card p-8">
-              <PrivateHospitalsChart data={privateData} totals={privateTotals} />
-            </div>
+            <PrivateHospitalsChart data={privateData} totals={privateTotals} />
           </div>
 
           {/* RIGHT: Status & Cirila (4 Cols) */}
           <div className="xl:col-span-4 space-y-8 no-print">
-            
+
             {/* INTERACTIVE PANEL */}
             <div className="relative">
               <InteractiveCirilaPanel />
@@ -251,7 +249,7 @@ export default async function DashboardPage() {
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Aguardando sincronização...</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3 custom-scrollbar">
+                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3">
                   {availabilities.map(h => {
                     const totalVagas = (h.cti_masc || 0) + (h.cti_fem || 0) + (h.clinica_masc || 0) + (h.clinica_fem || 0);
 

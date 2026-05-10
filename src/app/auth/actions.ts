@@ -7,21 +7,102 @@ import { redirect } from 'next/navigation'
 import { ActionResult } from '@/lib/action-types'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
+  let isRedirect = false
+  let errorMsg = null
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  try {
+    const email = (formData.get('email') as string)?.toLowerCase().trim()
+    const password = formData.get('password') as string
+
+    console.log('[Auth] >>> Tentativa de login iniciada:', { email, hasPassword: !!password });
+
+    if (!email || !password) {
+      console.warn('[Auth] !!! E-mail ou senha ausentes no formData');
+      return { success: false, error: 'E-mail e senha são obrigatórios.' }
+    }
+
+    const supabase = await createClient()
+
+    console.log('[Auth] >>> Início da tentativa de login para:', email)
+
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      const keyPreview = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY 
+        ? `${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.substring(0, 8)}...${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.slice(-4)}`
+        : 'AUSENTE';
+        
+      console.error('[Auth] !!! Erro Supabase signIn:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        key_preview: keyPreview
+      })
+
+      if (error.message.includes('API key')) {
+        errorMsg = `Erro de API Key: A chave no seu arquivo .env parece inválida (Preview: ${keyPreview}). As chaves do Supabase devem ser JWTs começando com 'eyJ'.`
+      } else {
+        errorMsg = error.message === 'Invalid login credentials' 
+          ? 'E-mail ou senha incorretos.' 
+          : `Erro de autenticação: ${error.message}`
+      }
+    } else if (authData.user) {
+      console.log('[Auth] >>> Login Supabase OK. User ID:', authData.user.id)
+      console.log('[Auth] >>> Metadados do usuário:', authData.user.user_metadata)
+      
+      // Sincronização com Prisma
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: authData.user.id }
+        })
+
+        if (!dbUser) {
+          console.warn('[Auth] !!! Usuário ausente no Prisma. Criando perfil...')
+          const userCount = await prisma.user.count()
+          const newUser = await prisma.user.create({
+            data: {
+              id: authData.user.id,
+              email: authData.user.email || email,
+              name: authData.user.user_metadata?.full_name || email.split('@')[0],
+              role: userCount === 0 ? 'ADMIN' : 'REGULADOR',
+              canCancelPatient: userCount === 0,
+              canPrintReports: true,
+            }
+          })
+          console.log('[Auth] >>> Perfil Prisma sincronizado com sucesso:', newUser.id)
+        } else {
+          console.log('[Auth] >>> Perfil Prisma já existe para este usuário:', dbUser.id)
+        }
+      } catch (prismaErr) {
+        console.error('[Auth] !!! Erro Crítico na sincronização Prisma:', prismaErr)
+        // Mesmo com erro no Prisma, permitimos o redirect se o Supabase logou, 
+        // mas idealmente o Prisma deveria estar OK.
+      }
+
+      isRedirect = true
+    } else {
+      console.warn('[Auth] !!! Supabase não retornou erro nem usuário.')
+      errorMsg = 'Falha desconhecida na autenticação (Supabase retornou vazio).'
+    }
+  } catch (err: any) {
+    if (err.digest?.includes('NEXT_REDIRECT') || err.message?.includes('NEXT_REDIRECT')) {
+      throw err
+    }
+    console.error('[Auth] !!! Erro Excepcional na Action Login:', err)
+    errorMsg = 'Erro interno de servidor. Tente novamente mais tarde.'
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
-
-  if (error) {
-    return { success: false, error: error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message }
+  if (isRedirect) {
+    console.log('[Auth] >>> Redirecionando para Dashboard (/) ...')
+    revalidatePath('/', 'layout')
+    redirect('/')
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  console.log('[Auth] >>> Login falhou. Retornando erro para o cliente.')
+  return { success: false, error: errorMsg }
 }
 
 export async function signup(formData: FormData) {

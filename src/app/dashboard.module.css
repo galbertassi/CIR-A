@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .headerSection {
@@ -27,19 +27,34 @@
 }
 
 .mainHero {
-  background: rgba(8, 20, 40, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, rgba(11, 25, 44, 0.8) 0%, rgba(15, 23, 42, 0.6) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 2rem;
   color: #f1f5f9;
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 2rem;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid rgba(0, 180, 216, 0.2);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 216, 255, 0.15);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.mainHero::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(0, 180, 216, 0.05) 0%, transparent 50%);
+  pointer-events: none;
 }
 
 .heroTitle {
@@ -60,10 +75,12 @@
 
 .statCard {
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(4px);
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s, background 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .statCard:hover {
@@ -72,13 +89,15 @@
 }
 
 .avatarSection {
-  background: rgba(8, 20, 40, 0.6);
-  border: 1px solid rgba(0, 180, 216, 0.15);
-  border-radius: 24px;
+  background: rgba(11, 25, 44, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 180, 216, 0.2);
+  border-radius: 28px;
   padding: 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .featuresGrid {

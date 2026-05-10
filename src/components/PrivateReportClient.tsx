@@ -146,12 +146,12 @@ export default function PrivateReportClient({ byHospital, totalTransfers, genera
         })}
       </div>
 
-        <div className="print-header-global" style={{ display: 'none' }}>
-          <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '1rem', marginBottom: '1rem' }}>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
-              CIR-A | CENTRAL INTELIGENTE DE REGULAÇÃO AUTOMATIZADA
-            </div>
-            <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '4px' }}>
+      <div className="print-header-global" style={{ display: 'none' }}>
+        <div style={{ textAlign: 'center', borderBottom: '2px solid #1e293b', paddingBottom: '1rem', marginBottom: '1rem' }}>
+          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>
+            CIR-A | CENTRAL INTELIGENTE DE REGULAÇÃO AUTOMATIZADA
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '4px' }}>
             Gerado em: {generatedAt} · Total: {totalTransfers} transferências
           </div>
         </div>
@@ -176,7 +176,7 @@ export default function PrivateReportClient({ byHospital, totalTransfers, genera
             className="card private-hospital-section"
             data-hospital={slug}
             style={{
-              padding: '0',
+              padding: '',
               border: `1px solid ${col.border}`,
               background: col.bg,
               breakInside: 'avoid',
@@ -231,8 +231,8 @@ export default function PrivateReportClient({ byHospital, totalTransfers, genera
                   className="no-print"
                   onClick={() => printHospital(hosp)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '0.4rem 0.85rem',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '0.5rem 1rem',
                     borderRadius: '8px',
                     border: `1px solid ${col.border}`,
                     background: col.badge,
@@ -240,6 +240,7 @@ export default function PrivateReportClient({ byHospital, totalTransfers, genera
                     cursor: 'pointer',
                     fontSize: '0.82rem',
                     fontWeight: 600,
+                    transition: 'all 0.2s ease'
                   }}
                   title={`Imprimir relatório de ${hosp}`}
                 >

@@ -26,19 +26,26 @@ export default function CirilaAvatar({
 
   if (!isMounted) return null;
 
-  // No estilo institucional, usamos o ícone flat original
-  const iconSrc = '/cirila_icone.png';
+  // Mapeamento de expressões para os arquivos 3D correspondentes
+  const expressionImages: Record<CirilaExpression, string> = {
+    neutral: '/cirila_3D_neutral.png',
+    smiling: '/cirila_3D_smiling.png',
+    thinking: '/cirila_3D_thinking.png',
+    alert: '/cirila_3D_alert.png'
+  };
 
-  // Cores de status sutis para a borda
+  const currentImage = expressionImages[expression] || expressionImages.neutral;
+
+  // Cores de status sutis para o efeito de aura/brilho
   const statusColors: Record<CirilaExpression, string> = {
-    neutral: '#e2e8f0',
-    smiling: '#10b981',
-    thinking: '#0ea5e9',
-    alert: '#ef4444'
+    neutral: 'rgba(0, 216, 255, 0.2)',
+    smiling: 'rgba(16, 185, 129, 0.3)',
+    thinking: 'rgba(14, 165, 233, 0.3)',
+    alert: 'rgba(239, 68, 68, 0.3)'
   };
 
   return (
-    <div className={`cirila-avatar-wrapper ${className}`} style={{
+    <div className={`cirila-avatar-container ${className}`} style={{
       position: 'relative',
       width: size,
       height: 'auto',
@@ -47,32 +54,48 @@ export default function CirilaAvatar({
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'visible',
-      background: 'white',
-      borderRadius: '50%',
-      padding: '4px',
-      border: `2px solid ${statusColors[expression]}`,
-      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-      transition: 'all 0.3s ease'
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
     }}>
+      {/* Aura de fundo dinâmica */}
+      <div style={{
+        position: 'absolute',
+        width: '120%',
+        height: '120%',
+        background: `radial-gradient(circle, ${statusColors[expression]} 0%, transparent 70%)`,
+        borderRadius: '50%',
+        zIndex: 0,
+        filter: 'blur(20px)',
+        opacity: 0.8,
+        animation: 'pulse-aura 4s infinite alternate'
+      }} />
+
       <Image
-        src={iconSrc}
-        alt="Cirila"
-        width={128}
-        height={128}
+        src={currentImage}
+        alt={`Cirila ${expression}`}
+        width={512}
+        height={512}
         priority
+        className={className}
         style={{
-          width: '80%',
-          height: '80%',
+          width: '100%',
+          height: '100%',
           objectFit: 'contain',
+          zIndex: 1,
+          filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.3))'
         }}
       />
 
       <style jsx>{`
-        .cirila-avatar-wrapper {
+        .cirila-avatar-container {
           user-select: none;
           pointer-events: none;
+        }
+        @keyframes pulse-aura {
+          0% { transform: scale(1); opacity: 0.5; }
+          100% { transform: scale(1.1); opacity: 0.8; }
         }
       `}</style>
     </div>
   );
 }
+

@@ -11,4 +11,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **IMUTABILIDADE DA ETIQUETA (RODAPÉ FIXO):** NUNCA altere o código, layout ou formatação do arquivo `src/app/api/cirila/etiqueta/route.ts`. O formato atual (Corpo 100% limpo para colagem manual + Etiqueta fixa no Rodapé) é o padrão definitivo e institucional.
 - **REGRA DE PÁGINA ÚNICA (RODAPÉ FIXO):** Se houver anexo automático, ele deve ser centralizado (máx 400x550px) para garantir que a etiqueta (que está no rodapé) permaneça na mesma folha. As margens devem ser sempre 720 DXA em todos os lados.
 - **VALIDAÇÃO:** Sempre exija o Hospital de Origem para geração de etiquetas oficiais.
+- **LOGIN UI:** O layout da página de login é DEFINITIVO. O logo deve ter exatamente 100px de largura, o título deve ser em CAIXA ALTA (CENTRAL INTELIGENTE DE / REGULAÇÃO AUTOMATIZADA) e a BARRA DE DIALOGO da Cirila deve estar posicionada EXATAMENTE a 30% da base (`bottom: 30%`). ESTA POSIÇÃO É IMUTÁVEL E NUNCA DEVE SER ALTERADA SOB QUALQUER CIRCUNSTÂNCIA.
 

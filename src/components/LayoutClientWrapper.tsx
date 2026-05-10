@@ -49,9 +49,9 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
   return (
     <NotificationProvider>
       <div className="min-h-screen flex flex-col">
-        
+
         {!isLoginPage && (
-          <button 
+          <button
             className="mobile-toggle"
             onClick={toggleMobileMenu}
             aria-label="Abrir Menu"
@@ -62,19 +62,19 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
 
         <div className="flex flex-1 pt-0">
           <aside className={`sidebar-main ${isMobileMenuOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-            <div className="flex justify-center items-center mb-6 mt-4 px-4">
-              <div className="relative w-[120px] h-[60px]">
+            <div className="flex justify-center items-center mb-8 mt-7 px-8">
+              <div className="relative w-[190px] h-[120px] sidebar-logo-container">
                 <Image
                   src="/logo.png"
                   alt="Logo CIR-A"
                   fill
                   priority
-                  className="object-contain"
+                  className="object-contain sidebar-logo"
                 />
               </div>
             </div>
 
-            <div className="mx-0 my-6 h-[1px] bg-gradient-to-r from-transparent via-[rgba(0,216,255,0.15)] to-transparent" />
+            <div className="mx-0 my-8 h-[1px] bg-gradient-to-r from-transparent via-[rgba(0,216,255,0.15)] to-transparent" />
 
             <nav className="flex flex-col gap-1">
               <Link href="/" className={`sidebar-link ${pathname === '/' ? 'sidebar-active' : ''}`}>
@@ -110,9 +110,8 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
             <div className="mt-auto flex flex-col gap-3">
               <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center opacity-80 ${
-                    user?.role === 'ADMIN' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-cyan-500/15 text-cyan-400'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center opacity-80 ${user?.role === 'ADMIN' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-cyan-500/15 text-cyan-400'
+                    }`}>
                     <UserIcon size={18} />
                   </div>
                   {!isSidebarCollapsed && (
@@ -139,7 +138,7 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
                   )
                 )}
 
-                <button 
+                <button
                   onClick={() => logout()}
                   className="flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 text-[10px] font-bold p-2 rounded-xl cursor-pointer transition-all hover:bg-red-500/20"
                 >
@@ -147,23 +146,23 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
                 </button>
               </div>
 
-              <Link 
-                href="/sobre" 
+              <Link
+                href="/sobre"
                 className={`sidebar-link ${pathname === '/sobre' ? 'sidebar-active' : ''} bg-cyan-500/5 border border-cyan-500/10 hover:border-cyan-500/30 transition-all !mb-4`}
               >
                 <Info size={20} className="text-[#00b4d8]" />
                 {!isSidebarCollapsed && <span>Sobre o Sistema</span>}
               </Link>
-              
+
               <div className="my-1 h-[1px] bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
               <div className="p-2 flex flex-col gap-1 text-center">
                 <div className="text-[9px] text-slate-500 font-bold opacity-60 letter-spacing-[0.5px]">
                   SMSVR • CIR-A • v1.5
                 </div>
-                <a 
-                  href="https://www.instagram.com/gabriel.albertassi" 
-                  target="_blank" 
+                <a
+                  href="https://www.instagram.com/gabriel.albertassi"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-[10px] text-cyan-400 font-extrabold opacity-80 hover:opacity-100 transition-opacity"
                 >
@@ -174,7 +173,7 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
           </aside>
 
           <main className="main-viewport relative">
-            <header className="flex justify-end items-center px-8 py-4 bg-[#071426] sticky top-0 z-50 border-b border-white/5">
+            <header className="flex justify-end items-center px-8 py-2 bg-[#071426] sticky top-0 z-50" style={{ boxShadow: '0 1px 15px rgba(0,0,0,0.3)' }}>
               <NotificationBell />
             </header>
 
@@ -182,10 +181,8 @@ export default function LayoutClientWrapper({ children, user }: { children: Reac
               {children}
             </div>
 
-            <footer className="mt-auto p-8 flex flex-col gap-4 border-t border-white/5 items-center text-center bg-slate-900/40">
-              <div className="relative w-[120px] h-[36px] opacity-40">
-                <Image src="/logo.png" alt="Logo CIR-A" fill className="object-contain grayscale brightness-200" />
-              </div>
+            <footer className="mt-auto p-8 flex flex-col gap-3 items-center text-center bg-slate-900/40" style={{ boxShadow: '0 -1px 15px rgba(0,0,0,0.2)' }}>
+              <Image src="/logo.png" alt="Logo CIR-A" width={100} height={30} className="object-contain grayscale brightness-200 opacity-40" />
               <div className="text-[9px] font-bold text-slate-600 uppercase tracking-[2px]">
                 SMSVR • SECRETARIA MUNICIPAL DE SAÚDE • VOLTA REDONDA
               </div>

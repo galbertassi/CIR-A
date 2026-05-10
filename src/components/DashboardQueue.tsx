@@ -22,14 +22,14 @@ type Patient = {
 function formatHours(dateString: Date) {
   const diffHours = (new Date().getTime() - new Date(dateString).getTime()) / (1000 * 60 * 60);
   if (diffHours < 24) return `${diffHours.toFixed(1)}h`;
-  return `${(diffHours/24).toFixed(1)} dias`;
+  return `${(diffHours / 24).toFixed(1)} dias`;
 }
 
 export default function DashboardQueue({ patients, user }: { patients: Patient[], user: any }) {
   const [localPatients, setLocalPatients] = React.useState(patients);
-  const [blastModal, setBlastModal] = useState<{id: string, severity: string, is_private?: boolean} | null>(null);
-  const [chargeModal, setChargeModal] = useState<{id: string, origin: string} | null>(null);
-  const [attachModal, setAttachModal] = useState<{id: string, name: string} | null>(null);
+  const [blastModal, setBlastModal] = useState<{ id: string, severity: string, is_private?: boolean } | null>(null);
+  const [chargeModal, setChargeModal] = useState<{ id: string, origin: string } | null>(null);
+  const [attachModal, setAttachModal] = useState<{ id: string, name: string } | null>(null);
 
   // Sync local state when props change
   React.useEffect(() => {
@@ -40,7 +40,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
 
   const handleTogglePrivate = async (id: string, current: boolean) => {
     // Optimistic Update
-    setLocalPatients(prev => prev.map(p => 
+    setLocalPatients(prev => prev.map(p =>
       p.id === id ? { ...p, is_private: !current } : p
     ));
 
@@ -48,7 +48,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
     const result = await togglePatientPrivateProfile(id, current);
     if (!result.success) {
       // Rollback on error
-      setLocalPatients(prev => prev.map(p => 
+      setLocalPatients(prev => prev.map(p =>
         p.id === id ? { ...p, is_private: current } : p
       ));
       alert("Erro ao atualizar perfil: " + (result as any).error);
@@ -58,6 +58,14 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
   // Show all relevant active patients on the dashboard
   const priorityPatients = localPatients;
 
+  // Disparar alerta da Cirila "brava" quando houver pacientes em risco crítico
+  React.useEffect(() => {
+    const criticalPatients = localPatients.filter(p => (p.score || 0) > 35 || p.score === -1);
+    if (criticalPatients.length > 0) {
+      window.dispatchEvent(new CustomEvent('CIRILA_CRITICAL_ALERT', { detail: criticalPatients.length }));
+    }
+  }, [localPatients]);
+
   return (
     <div className="mt-4">
       <div className="card p-6">
@@ -65,7 +73,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
           <h2 className="text-base font-extrabold text-slate-100 uppercase tracking-wider flex items-center gap-2 m-0">
             <AlertCircle size={18} className="text-red-500" strokeWidth={3} /> Fila de Regulação em Tempo Real
           </h2>
-          
+
           <div className="flex items-center gap-4">
             <span className="text-xs text-slate-400 font-bold">{priorityPatients.length} pacientes</span>
             <Link href="/patients/new" className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all no-underline flex items-center gap-1.5">
@@ -79,7 +87,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
             Não há pacientes na fila no momento.
           </div>
         ) : (
-          <div className="table-container">
+          <div className="table-container custom-scrollbar" style={{ overflowY: 'auto' as any, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-white/5">
@@ -103,14 +111,13 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                         <div className={`text-[10px] font-bold uppercase tracking-wider ${p.status === 'WAITING' ? 'text-slate-500' : 'text-indigo-400'}`}>
                           {p.status === 'WAITING' ? 'Aguardando Vaga' : 'Vaga Solicitada'}
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={() => handleTogglePrivate(p.id, p.is_private ?? false)}
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all w-fit mt-2 ${
-                            p.is_private 
-                              ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                              : 'bg-slate-500/10 text-slate-500 border border-slate-500/10'
-                          }`}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all w-fit mt-2 ${p.is_private
+                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                            : 'bg-slate-500/10 text-slate-500 border border-slate-500/10'
+                            }`}
                           title={p.is_private ? "Mudar para perfil SUS" : "Mudar para perfil Privado"}
                         >
                           {p.is_private ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
@@ -119,9 +126,8 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                       </div>
                     </td>
                     <td className="py-4 px-2">
-                      <div className={`text-sm font-black ${
-                        (p.score || 0) >= 35 || p.score === -1 ? 'text-red-500 animate-pulse' : 'text-slate-300'
-                      }`}>
+                      <div className={`text-sm font-black ${(p.score || 0) >= 35 || p.score === -1 ? 'text-red-500 animate-pulse' : 'text-slate-300'
+                        }`}>
                         {p.score === -1 ? 'VAGA ZERO' : p.score || '0'}
                       </div>
                     </td>
@@ -135,7 +141,7 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                     </td>
                     <td className="py-4 px-2 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button 
+                        <button
                           onClick={() => setAttachModal({ id: p.id, name: p.name })}
                           className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all"
                           title="Anexar Evolução"
@@ -143,24 +149,23 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
                           <Paperclip size={14} /> ANEXAR
                         </button>
 
-                        <button 
+                        <button
                           onClick={() => setChargeModal({ id: p.id, origin: p.origin_hospital })}
                           className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
                           title="Cobrar Evolução"
                         >
                           <MessageCircle size={14} /> COBRAR
                         </button>
-                        
-                        <button 
+
+                        <button
                           onClick={() => {
                             if (canAction) setBlastModal({ id: p.id, severity: p.severity, is_private: p.is_private })
                           }}
                           disabled={!canAction}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                            canAction 
-                              ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20' 
-                              : 'bg-slate-500/10 text-slate-500 border border-slate-500/10 opacity-50 cursor-not-allowed'
-                          }`}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${canAction
+                            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20'
+                            : 'bg-slate-500/10 text-slate-500 border border-slate-500/10 opacity-50 cursor-not-allowed'
+                            }`}
                           title={canAction ? "Disparo (Busca de Vaga)" : "Acesso Restrito"}
                         >
                           <Send size={14} /> DISPARO
@@ -176,11 +181,11 @@ export default function DashboardQueue({ patients, user }: { patients: Patient[]
       </div>
 
       {blastModal && (
-        <MassBlastModal 
-          patientId={blastModal.id} 
-          severity={blastModal.severity} 
+        <MassBlastModal
+          patientId={blastModal.id}
+          severity={blastModal.severity}
           isPrivatePatient={blastModal.is_private}
-          onClose={() => setBlastModal(null)} 
+          onClose={() => setBlastModal(null)}
         />
       )}
 
