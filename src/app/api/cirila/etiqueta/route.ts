@@ -376,21 +376,30 @@ export async function GET(req: NextRequest) {
               updatedTemplateXml = templateXml.replace(new RegExp(`<${templatePrefix}:document[^>]*>`), `<${templatePrefix}:document${templateAttrs}>`);
             }
           }
-
-          // 4. Inserção Cirúrgica Simplificada
-          // Inserimos a etiqueta antes do fechamento do corpo do template
+          // 4. Inserção Cirúrgica Final
           const bodyCloseTag = `</${templatePrefix}:body>`;
           
           // Limpeza final para evitar tags duplicadas de documentação do Word
           const cleanLabelBody = labelBody.replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '').replace(/<w:sectPr[\s\S]*?\/>/g, '');
           
-          const mergedXml = updatedTemplateXml.replace(bodyCloseTag, `${cleanLabelBody}${bodyCloseTag}`);
+          // No Word, o sectPr deve ser o ÚLTIMO elemento do body. 
+          // Vamos inserir a etiqueta ANTES dele para não corromper o arquivo.
+          const sectPrTag = `<${templatePrefix}:sectPr`;
+          const lastSectPrIndex = updatedTemplateXml.lastIndexOf(sectPrTag);
+          
+          let mergedXml;
+          if (lastSectPrIndex !== -1) {
+            mergedXml = updatedTemplateXml.slice(0, lastSectPrIndex) + cleanLabelBody + updatedTemplateXml.slice(lastSectPrIndex);
+          } else {
+            // Fallback: insere antes do fechamento do body se não achar sectPr
+            mergedXml = updatedTemplateXml.replace(bodyCloseTag, `${cleanLabelBody}${bodyCloseTag}`);
+          }
 
           templateZip.file("word/document.xml", mergedXml);
           
-          // Gerar o buffer final de forma robusta
+          // Gerar o buffer final de forma robusta (uint8array para compatibilidade total com Next.js)
           const finalBuffer = await templateZip.generateAsync({ 
-            type: 'nodebuffer',
+            type: 'uint8array',
             compression: 'DEFLATE',
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
