@@ -399,7 +399,7 @@ export async function GET(req: NextRequest) {
             compression: 'DEFLATE'
           });
 
-          return new NextResponse(finalBuffer, {
+          return new NextResponse(new Uint8Array(finalBuffer), {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
