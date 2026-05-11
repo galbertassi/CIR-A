@@ -377,32 +377,25 @@ export async function GET(req: NextRequest) {
             }
           }
 
-          // 4. Inserção Cirúrgica: Deve ser ANTES do w:sectPr final do corpo
+          // 4. Inserção Cirúrgica Simplificada
+          // Inserimos a etiqueta antes do fechamento do corpo do template
           const bodyCloseTag = `</${templatePrefix}:body>`;
-          const sectPrTag = `<${templatePrefix}:sectPr`;
           
-          // Encontrar o sectPr que é filho direto do body (geralmente no final)
-          const lastSectPrIndex = updatedTemplateXml.lastIndexOf(sectPrTag);
-          const bodyCloseIndex = updatedTemplateXml.lastIndexOf(bodyCloseTag);
+          // Limpeza final para evitar tags duplicadas de documentação do Word
+          const cleanLabelBody = labelBody.replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '').replace(/<w:sectPr[\s\S]*?\/>/g, '');
           
-          let mergedXml;
-          // Se encontramos um sectPr próximo ao final do body, inserimos antes dele
-          if (lastSectPrIndex !== -1 && lastSectPrIndex < bodyCloseIndex) {
-            mergedXml = updatedTemplateXml.slice(0, lastSectPrIndex) + labelBody + updatedTemplateXml.slice(lastSectPrIndex);
-          } else {
-            // Fallback: insere antes do fechamento do body
-            mergedXml = updatedTemplateXml.replace(bodyCloseTag, labelBody + bodyCloseTag);
-          }
+          const mergedXml = updatedTemplateXml.replace(bodyCloseTag, `${cleanLabelBody}${bodyCloseTag}`);
 
           templateZip.file("word/document.xml", mergedXml);
           
-          // Gerar o buffer final de forma robusta como Uint8Array
+          // Gerar o buffer final de forma robusta
           const finalBuffer = await templateZip.generateAsync({ 
-            type: 'uint8array',
-            compression: 'DEFLATE'
+            type: 'nodebuffer',
+            compression: 'DEFLATE',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
 
-          return new NextResponse(new Uint8Array(finalBuffer), {
+          return new NextResponse(finalBuffer, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
