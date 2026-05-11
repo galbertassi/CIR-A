@@ -233,15 +233,6 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
             };
           }
 
-          return {
-            text: `Entendido. Vou preparar a etiqueta para **${patientName}**. Qual é o **Hospital de Origem**? (Obrigatório para o layout institucional)`,
-            sender: 'ai'
-          };
-        }
-      }
-    }
-
-    // 3. Lógica de Dashboards / Relatórios (Expandida)
     if (lowerQuery.includes('relatório') || lowerQuery.includes('dashboard') || lowerQuery.includes('estatística') || lowerQuery.includes('nir')) {
       const now = new Date();
       const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1);

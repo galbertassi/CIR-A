@@ -104,6 +104,34 @@ function CirilaDashboard({ data, period, examType }: { data: any, period: string
           </div>
         </div>
       )}
+
+      {/* Botão de Teste de Exportação */}
+      <div style={{ marginTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('CIRILA_ACTION', { detail: 'EXPORT_WORD' }))}
+          style={{
+            width: '100%',
+            background: 'rgba(0, 216, 255, 0.1)',
+            border: '1px solid rgba(0, 216, 255, 0.2)',
+            color: '#00d8ff',
+            padding: '0.6rem',
+            borderRadius: '10px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0, 216, 255, 0.2)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'rgba(0, 216, 255, 0.1)'}
+        >
+          <FileText size={14} />
+          Teste Exportação Word (Estável)
+        </button>
+      </div>
     </div>
   );
 }
@@ -161,10 +189,13 @@ export default function CirilaBotWidget() {
     window.addEventListener('CIRILA_CRITICAL_ALERT', handleScoreAlert);
     window.addEventListener('NIR_WEBHOOK_REPLY', handleSimulatedReply);
     window.addEventListener('TOGGLE_CIRILA', handleToggle);
+    window.addEventListener('CIRILA_ACTION', (e: any) => handleActionClick(e.detail));
+
     return () => {
       window.removeEventListener('CIRILA_CRITICAL_ALERT', handleScoreAlert);
       window.removeEventListener('NIR_WEBHOOK_REPLY', handleSimulatedReply);
       window.removeEventListener('TOGGLE_CIRILA', handleToggle);
+      window.removeEventListener('CIRILA_ACTION', (e: any) => handleActionClick(e.detail));
     };
   }, []);
 
@@ -369,6 +400,38 @@ export default function CirilaBotWidget() {
       };
 
       safeDownload(url, `Relatorio_Mensal_${new Date().getMonth() + 1}_${new Date().getFullYear()}.docx`);
+      return;
+    }
+
+    if (payload === 'EXPORT_WORD') {
+      const url = '/api/export-word';
+      setProcessingStatus('Gerando documento estável...');
+
+      const safeDownload = async (fetchUrl: string, fileName: string) => {
+        try {
+          const res = await fetch(fetchUrl, { cache: 'no-store' });
+          if (!res.ok) throw new Error('Falha ao gerar documento estável.');
+          
+          const blob = await res.blob();
+          
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+          
+          setMessages(prev => [...prev, { text: `✅ **Word gerado com sucesso!** O arquivo foi baixado.`, sender: 'ai' }]);
+        } catch (err: any) {
+          setMessages(prev => [...prev, { text: `❌ **Erro:** ${err.message}`, sender: 'ai' }]);
+        } finally {
+          setProcessingStatus(null);
+        }
+      };
+
+      safeDownload(url, 'Relatorio_Teste_Cirila.docx');
       return;
     }
 
