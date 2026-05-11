@@ -404,7 +404,7 @@ export async function GET(req: NextRequest) {
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
 
-          return new NextResponse(finalBuffer, {
+          return new NextResponse(Buffer.from(finalBuffer) as any, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
