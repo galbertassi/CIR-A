@@ -404,7 +404,7 @@ export async function GET(req: NextRequest) {
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
 
-          return new NextResponse(finalBuffer, {
+          return new NextResponse(finalBuffer as any, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -418,7 +418,7 @@ export async function GET(req: NextRequest) {
           const fallbackDoc = createFinalDocument([], labelElements);
           const fallbackBuffer = await Packer.toBuffer(fallbackDoc);
           const fallbackUint8 = new Uint8Array(fallbackBuffer);
-          return new NextResponse(fallbackUint8, {
+          return new NextResponse(fallbackUint8 as any, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_S_Anexo_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
