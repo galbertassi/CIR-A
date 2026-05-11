@@ -317,63 +317,82 @@ export async function GET(req: NextRequest) {
           const templateZip = await JSZip.loadAsync(fileBuffer);
           const templateXml = await templateZip.file("word/document.xml")?.async("string") || "";
 
-          // Gerar XML da etiqueta de forma limpa
+          // Gerar XML do Espaçador e Etiqueta usando a própria biblioteca docx para garantir validade total
+          const spacerTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            layout: TableLayoutType.FIXED,
+            alignment: AlignmentType.CENTER,
+            borders: {
+              top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+              left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+              insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE },
+            },
+            rows: [
+              new TableRow({
+                height: { value: 12000, rule: HeightRule.EXACT },
+                children: [new TableCell({ children: [new Paragraph("")] })],
+              }),
+              new TableRow({
+                height: { value: 2500, rule: HeightRule.EXACT },
+                children: [new TableCell({ 
+                  verticalAlign: VerticalAlign.BOTTOM,
+                  children: labelElements 
+                })],
+              }),
+            ],
+          });
+
           const tempDoc = new Document({ 
             sections: [{ 
               properties: { page: { margin: { top: 0, right: 0, bottom: 0, left: 0 } } },
-              children: labelElements 
+              children: [spacerTable] 
             }] 
           });
+          
           const tempBuffer = await Packer.toBuffer(tempDoc);
           const tempZip = await JSZip.loadAsync(tempBuffer);
-          const labelXml = await tempZip.file("word/document.xml")?.async("string") || "";
+          const fullSpacerXml = await tempZip.file("word/document.xml")?.async("string") || "";
 
-          const bodyMatch = labelXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
+          const bodyMatch = fullSpacerXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
           if (bodyMatch) {
-            // Limpar XML da etiqueta (remover sectPr e tags de seção redundantes)
-            const labelBody = bodyMatch[1]
+            // Extrair apenas o conteúdo do corpo (tabela e parágrafos)
+            let spacerBody = bodyMatch[1]
               .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '')
               .replace(/<w:sectPr[\s\S]*?\/>/g, '')
+              .replace(/>\s+</g, '><') // Minificação segura (apenas entre tags)
               .trim();
-            
-            const bodyCloseTag = "</w:body>";
+
+            // Detectar prefixo de namespace do template (raro ser diferente de 'w', mas para blindagem total)
+            const templatePrefix = templateXml.match(/xmlns:(\w+)="http:\/\/schemas\.openxmlformats\.org\/wordprocessingml\/2006\/main"/)?.[1] || "w";
+            if (templatePrefix !== "w") {
+              spacerBody = spacerBody.replace(/w:/g, `${templatePrefix}:`);
+            }
+
+            // LOCALIZAÇÃO CIRÚRGICA DO PONTO DE INSERÇÃO
+            // Em OOXML, o sectPr final é um filho direto do w:body.
+            // Procuramos o fechamento do corpo e voltamos para o sectPr imediatamente anterior.
+            const bodyCloseTag = `</${templatePrefix}:body>`;
             const bodyCloseIndex = templateXml.lastIndexOf(bodyCloseTag);
             
-            if (bodyCloseIndex === -1) throw new Error("Estrutura do template Word inválida.");
+            if (bodyCloseIndex === -1) throw new Error("Estrutura do template Word incompatível.");
 
-            // Localizar o sectPr final (propriedades da seção final do corpo)
-            const lastSectPrIndex = templateXml.lastIndexOf("<w:sectPr", bodyCloseIndex);
+            // Procurar o sectPr final que é filho direto do body (geralmente logo antes do </w:body>)
+            const lastSectPrRegex = new RegExp(`<${templatePrefix}:sectPr[\\s\\S]*?>(?:[\\s\\S]*?)</${templatePrefix}:sectPr>|<${templatePrefix}:sectPr[\\s\\S]*?/>`, 'g');
+            let lastSectPrMatch;
+            let finalSectPrIndex = -1;
+            let match;
             
-            // Estrutura de tabela via XML para garantir o posicionamento no rodapé (Layout Institucional)
-            // IMPORTANTE: Cada <w:tc> deve obrigatoriamente terminar com um <w:p/> para ser um XML válido.
-            const spacerXml = `
-              <w:tbl>
-                <w:tblPr>
-                  <w:tblW w:w="5000" w:type="pct"/>
-                  <w:tblLayout w:type="fixed"/>
-                  <w:jc w:val="center"/>
-                </w:tblPr>
-                <w:tr>
-                  <w:trPr><w:trHeight w:val="12000" w:hRule="exact"/></w:trPr>
-                  <w:tc><w:p/></w:tc>
-                </w:tr>
-                <w:tr>
-                  <w:trPr><w:trHeight w:val="2500" w:hRule="exact"/></w:trPr>
-                  <w:tc>
-                    <w:tcPr><w:vAlign w:val="bottom"/></w:tcPr>
-                    ${labelBody}
-                    <w:p/>
-                  </w:tc>
-                </w:tr>
-              </w:tbl>`;
+            while ((match = lastSectPrRegex.exec(templateXml.slice(0, bodyCloseIndex))) !== null) {
+              finalSectPrIndex = match.index;
+            }
 
             let mergedXml;
-            if (lastSectPrIndex !== -1) {
-              // Inserir ANTES do sectPr final do corpo
-              mergedXml = templateXml.slice(0, lastSectPrIndex) + spacerXml + templateXml.slice(lastSectPrIndex);
+            if (finalSectPrIndex !== -1 && finalSectPrIndex > bodyCloseIndex - 500) {
+              // Se encontramos um sectPr perto do fim do corpo, inserimos ANTES dele
+              mergedXml = templateXml.slice(0, finalSectPrIndex) + spacerBody + templateXml.slice(finalSectPrIndex);
             } else {
-              // Fallback para inserção no final do corpo
-              mergedXml = templateXml.slice(0, bodyCloseIndex) + spacerXml + bodyCloseTag;
+              // Caso contrário, inserimos antes do fechamento do corpo
+              mergedXml = templateXml.slice(0, bodyCloseIndex) + spacerBody + bodyCloseTag + templateXml.slice(bodyCloseIndex + bodyCloseTag.length);
             }
 
             templateZip.file("word/document.xml", mergedXml);

@@ -177,6 +177,7 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename=relatorio_anual_${year}.docx`,
+        'Content-Length': uint8Array.length.toString(),
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0',
