@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { createClient } from '@/lib/supabase/sb-server';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // ─── POST: recebe e salva o arquivo no Supabase ─────────────────────────────
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'O arquivo excede o limite de 5MB.' }, { status: 413 });
     }
 
-    const supabase = await createClient();
+    const supabase = supabaseAdmin;
     const fileId = crypto.randomUUID();
     const ext = path.extname(file.name) || '.bin';
     const fileName = `${fileId}${ext}`;

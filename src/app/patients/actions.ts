@@ -3,6 +3,7 @@
 import { prisma } from '../../lib/db'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/sb-server'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 
 import { ActionResult } from '@/lib/action-types'
 
@@ -197,7 +198,7 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = supabaseAdmin;
     
     // 1. Gerar nome e caminho único para a evolução
     const fileExt = file.name.split('.').pop();
@@ -218,8 +219,12 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
       });
 
     if (uploadError) {
-      console.error('[ATTACH_EVOLUTION] Erro no Supabase Storage:', uploadError);
-      throw new Error(`Falha no upload: ${uploadError.message}`);
+      console.error('[ATTACH_EVOLUTION] Erro no Supabase Storage:', {
+        message: uploadError.message,
+        name: uploadError.name,
+        error: uploadError
+      });
+      throw new Error(`Falha no upload (Supabase): ${uploadError.message}`);
     }
 
     const { data: { publicUrl } } = supabase.storage
