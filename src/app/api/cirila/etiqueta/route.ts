@@ -317,99 +317,96 @@ export async function GET(req: NextRequest) {
           const templateZip = await JSZip.loadAsync(fileBuffer);
           const templateXml = await templateZip.file("word/document.xml")?.async("string") || "";
 
-          // Gerar XML do Espaçador e Etiqueta usando a própria biblioteca docx para garantir validade total
-          const spacerTable = new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            layout: TableLayoutType.FIXED,
-            alignment: AlignmentType.CENTER,
-            borders: {
-              top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-              insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE },
-            },
-            rows: [
-              new TableRow({
-                height: { value: 12000, rule: HeightRule.EXACT },
-                children: [new TableCell({ children: [new Paragraph("")] })],
-              }),
-              new TableRow({
-                height: { value: 2500, rule: HeightRule.EXACT },
-                children: [new TableCell({ 
-                  verticalAlign: VerticalAlign.BOTTOM,
-                  children: labelElements 
-                })],
-              }),
-            ],
+          // Gerar a estrutura da etiqueta de forma limpa
+          // Não usamos o spacerTable gigante aqui para evitar quebrar o layout do template original
+          // Em vez disso, usaremos um parágrafo espaçador menor ou a tabela direta
+          const labelDoc = new Document({
+            sections: [{
+              children: [
+                new Paragraph({ spacing: { before: 400 } }), // Pequeno respiro antes da etiqueta
+                ...labelElements
+              ]
+            }]
           });
 
-          const tempDoc = new Document({ 
-            sections: [{ 
-              properties: { page: { margin: { top: 0, right: 0, bottom: 0, left: 0 } } },
-              children: [spacerTable] 
-            }] 
-          });
+          const labelBuffer = await Packer.toBuffer(labelDoc);
+          const labelZip = await JSZip.loadAsync(labelBuffer);
+          const labelXml = await labelZip.file("word/document.xml")?.async("string") || "";
+
+          // 1. Extrair o conteúdo do corpo da etiqueta gerada
+          const labelBodyMatch = labelXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
+          if (!labelBodyMatch) throw new Error("Erro ao gerar conteúdo da etiqueta.");
           
-          const tempBuffer = await Packer.toBuffer(tempDoc);
-          const tempZip = await JSZip.loadAsync(tempBuffer);
-          const fullSpacerXml = await tempZip.file("word/document.xml")?.async("string") || "";
+          let labelBody = labelBodyMatch[1]
+            .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '') // Remove propriedades de seção do label
+            .replace(/<w:sectPr[\s\S]*?\/>/g, '')
+            .replace(/<w:pStyle[^>]*\/>/g, '')            // Remove estilos de parágrafo (usa padrão do template)
+            .replace(/<w:rStyle[^>]*\/>/g, '')            // Remove estilos de caractere
+            .replace(/ w:(rsid[R|P|Pr]|paraId|textId)="[^"]*"/g, '') // Remove IDs de revisão e parágrafo
+            .replace(/ (w14|w15):(paraId|textId)="[^"]*"/g, '')      // Remove extensões Office 2010/2013
+            .trim();
 
-          const bodyMatch = fullSpacerXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
-          if (bodyMatch) {
-            // Extrair apenas o conteúdo do corpo (tabela e parágrafos)
-            let spacerBody = bodyMatch[1]
-              .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '')
-              .replace(/<w:sectPr[\s\S]*?\/>/g, '')
-              .replace(/>\s+</g, '><') // Minificação segura (apenas entre tags)
-              .trim();
-
-            // Detectar prefixo de namespace do template (raro ser diferente de 'w', mas para blindagem total)
-            const templatePrefix = templateXml.match(/xmlns:(\w+)="http:\/\/schemas\.openxmlformats\.org\/wordprocessingml\/2006\/main"/)?.[1] || "w";
-            if (templatePrefix !== "w") {
-              spacerBody = spacerBody.replace(/w:/g, `${templatePrefix}:`);
-            }
-
-            // LOCALIZAÇÃO CIRÚRGICA DO PONTO DE INSERÇÃO
-            // Em OOXML, o sectPr final é um filho direto do w:body.
-            // Procuramos o fechamento do corpo e voltamos para o sectPr imediatamente anterior.
-            const bodyCloseTag = `</${templatePrefix}:body>`;
-            const bodyCloseIndex = templateXml.lastIndexOf(bodyCloseTag);
+          // 2. Sincronizar Namespaces (Crucial para Word não corromper)
+          const labelRootMatch = labelXml.match(/<w:document([^>]*)>/);
+          let updatedTemplateXml = templateXml;
+          
+          if (labelRootMatch) {
+            const namespaces = labelRootMatch[1].match(/xmlns:\w+="[^"]*"/g) || [];
+            const templateRootMatch = templateXml.match(/<w:document([^>]*)>/);
             
-            if (bodyCloseIndex === -1) throw new Error("Estrutura do template Word incompatível.");
-
-            // Procurar o sectPr final que é filho direto do body (geralmente logo antes do </w:body>)
-            const lastSectPrRegex = new RegExp(`<${templatePrefix}:sectPr[\\s\\S]*?>(?:[\\s\\S]*?)</${templatePrefix}:sectPr>|<${templatePrefix}:sectPr[\\s\\S]*?/>`, 'g');
-            let lastSectPrMatch;
-            let finalSectPrIndex = -1;
-            let match;
-            
-            while ((match = lastSectPrRegex.exec(templateXml.slice(0, bodyCloseIndex))) !== null) {
-              finalSectPrIndex = match.index;
+            if (templateRootMatch) {
+              let templateAttrs = templateRootMatch[1];
+              namespaces.forEach(ns => {
+                const nsPrefix = ns.split('=')[0];
+                if (!templateAttrs.includes(nsPrefix)) {
+                  templateAttrs += ` ${ns}`;
+                }
+              });
+              updatedTemplateXml = templateXml.replace(/<w:document[^>]*>/, `<w:document${templateAttrs}>`);
             }
-
-            let mergedXml;
-            if (finalSectPrIndex !== -1 && finalSectPrIndex > bodyCloseIndex - 500) {
-              // Se encontramos um sectPr perto do fim do corpo, inserimos ANTES dele
-              mergedXml = templateXml.slice(0, finalSectPrIndex) + spacerBody + templateXml.slice(finalSectPrIndex);
-            } else {
-              // Caso contrário, inserimos antes do fechamento do corpo
-              mergedXml = templateXml.slice(0, bodyCloseIndex) + spacerBody + bodyCloseTag + templateXml.slice(bodyCloseIndex + bodyCloseTag.length);
-            }
-
-            templateZip.file("word/document.xml", mergedXml);
-            const finalBuffer = await templateZip.generateAsync({ 
-              type: 'nodebuffer',
-              compression: 'DEFLATE'
-            });
-
-            return new NextResponse(new Uint8Array(finalBuffer), {
-              headers: {
-                'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'Content-Length': finalBuffer.length.toString(),
-                'Cache-Control': 'no-store, no-cache, must-revalidate',
-              },
-            });
           }
+
+          // 3. Detectar prefixo do namespace do template (geralmente 'w')
+          const templatePrefixMatch = updatedTemplateXml.match(/xmlns:(\w+)="http:\/\/schemas\.openxmlformats\.org\/wordprocessingml\/2006\/main"/);
+          const templatePrefix = templatePrefixMatch ? templatePrefixMatch[1] : "w";
+          
+          if (templatePrefix !== "w") {
+            labelBody = labelBody.replace(/w:/g, `${templatePrefix}:`);
+          }
+
+          // 4. Inserção Cirúrgica: Deve ser ANTES do w:sectPr final do corpo
+          const bodyCloseTag = `</${templatePrefix}:body>`;
+          const sectPrTag = `<${templatePrefix}:sectPr`;
+          
+          // Encontrar o sectPr que é filho direto do body (geralmente no final)
+          const lastSectPrIndex = updatedTemplateXml.lastIndexOf(sectPrTag);
+          const bodyCloseIndex = updatedTemplateXml.lastIndexOf(bodyCloseTag);
+          
+          let mergedXml;
+          // Se encontramos um sectPr próximo ao final do body, inserimos antes dele
+          if (lastSectPrIndex !== -1 && lastSectPrIndex < bodyCloseIndex) {
+            mergedXml = updatedTemplateXml.slice(0, lastSectPrIndex) + labelBody + updatedTemplateXml.slice(lastSectPrIndex);
+          } else {
+            // Fallback: insere antes do fechamento do body
+            mergedXml = updatedTemplateXml.replace(bodyCloseTag, labelBody + bodyCloseTag);
+          }
+
+          templateZip.file("word/document.xml", mergedXml);
+          
+          // Gerar o buffer final
+          const finalBuffer = await templateZip.generateAsync({ 
+            type: 'nodebuffer',
+            compression: 'DEFLATE'
+          });
+
+          return new NextResponse(finalBuffer, {
+            headers: {
+              'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
+              'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'Content-Length': finalBuffer.length.toString(),
+              'Cache-Control': 'no-store, no-cache, must-revalidate',
+            },
+          });
         } catch (xmlError: any) {
           console.error('[CIRILA_XML_MERGE_ERROR]', xmlError);
           // Fallback para geração segura sem merge em caso de erro no parser
