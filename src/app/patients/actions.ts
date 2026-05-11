@@ -2,7 +2,6 @@
 
 import { prisma } from '../../lib/db'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/sb-server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 import { ActionResult } from '@/lib/action-types'
@@ -263,6 +262,34 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
   } catch (err: any) {
     console.error('[ATTACH_EVOLUTION_FATAL_ERROR]', err);
     return { success: false, error: `Erro interno crítico: ${err.message || 'Falha no processamento'}` };
+  }
+}
+export async function updatePatientEvolution(patientId: string, url: string, fileName: string): Promise<ActionResult> {
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.patient.update({
+        where: { id: patientId },
+        data: {
+          evolution_url: url,
+          evolution_name: fileName
+        }
+      });
+
+      await tx.log.create({
+        data: {
+          patient_id: patientId,
+          action: 'STATUS_UPDATE',
+          details: `📄 Evolução médica anexada via portal: ${fileName}`
+        }
+      });
+
+      revalidatePath('/patients');
+      revalidatePath('/');
+      return { success: true };
+    });
+  } catch (err: any) {
+    console.error('[UPDATE_EVOLUTION_ERROR]', err);
+    return { success: false, error: err.message || 'Erro ao atualizar registro no banco.' };
   }
 }
 

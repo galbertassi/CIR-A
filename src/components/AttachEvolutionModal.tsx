@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Paperclip, Upload, Loader2, CheckCircle2 } from 'lucide-react';
-import { attachMedicalEvolution } from '../app/patients/actions';
+import { updatePatientEvolution } from '../app/patients/actions';
 
 interface AttachEvolutionModalProps {
   patientId: string;
@@ -24,17 +24,45 @@ export default function AttachEvolutionModal({ patientId, patientName, onClose }
 
     try {
       const formData = new FormData();
-      formData.append('patientId', patientId);
       formData.append('file', file);
 
-      const res = await attachMedicalEvolution(formData);
-      if (res.success) {
+      // 1. UPLOAD VIA API ROUTE (ESTÁVEL)
+      const response = await fetch('/api/cirila/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // EVITA O ERRO DE RESPOSTA INESPERADA
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[UPLOAD_FETCH_ERROR]', errorText);
+        throw new Error(`Erro no servidor: ${response.status}`);
+      }
+
+      // PROTEÇÃO EXTRA: GARANTE QUE É JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        throw new Error('O servidor retornou uma resposta inválida (HTML).');
+      }
+
+      const uploadResult = await response.json();
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Falha ao processar arquivo.');
+      }
+
+      // 2. ATUALIZAÇÃO NO BANCO VIA SERVER ACTION (LEVE)
+      const dbResult = await updatePatientEvolution(patientId, uploadResult.url, uploadResult.fileName);
+
+      if (dbResult.success) {
         setSuccess(true);
         setTimeout(() => onClose(), 2000);
       } else {
-        setError(res.error || 'Erro desconhecido ao enviar arquivo.');
+        throw new Error(dbResult.error || 'Erro ao vincular arquivo ao paciente.');
       }
+
     } catch (err: any) {
+      console.error('[ATTACH_ERROR]', err);
       setError(err.message || 'Falha na conexão com o servidor.');
     } finally {
       setUploading(false);

@@ -1,22 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { createClient } from '@/lib/supabase/admin';
 
-// ─── POST: recebe e salva o arquivo no Supabase ─────────────────────────────
+export const runtime = "nodejs";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
+      return Response.json({ error: 'Nenhum arquivo enviado' }, { status: 400 });
     }
 
     // Validação de tamanho (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      console.warn(`[CIRILA_UPLOAD] Arquivo muito grande: ${file.size} bytes`);
-      return NextResponse.json({ error: 'O arquivo excede o limite de 5MB.' }, { status: 413 });
+      return Response.json({ error: 'O arquivo excede o limite de 5MB.' }, { status: 413 });
     }
 
     const supabase = createClient();
@@ -25,9 +23,7 @@ export async function POST(req: NextRequest) {
     const fileName = `${fileId}${ext}`;
     const filePath = `cirila/${fileName}`;
 
-    console.log(`[CIRILA_UPLOAD] Iniciando upload para Supabase: ${filePath}`);
-
-    // Converte File para Buffer para garantir compatibilidade no ambiente Node.js
+    // Converte File para Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload para o bucket 'malotes-pacientes'
@@ -40,16 +36,8 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[CIRILA_UPLOAD_SUPABASE_ERROR]', {
-        status: uploadError.status,
-        message: uploadError.message,
-        details: uploadError
-      });
-      return NextResponse.json({ 
-        success: false, 
-        error: `Falha no Supabase (${uploadError.message})`,
-        code: uploadError.status || '500'
-      }, { status: 500 });
+      console.error('[UPLOAD_ERROR]', uploadError);
+      return Response.json({ error: `Falha no Supabase: ${uploadError.message}` }, { status: 500 });
     }
 
     // Obter URL Pública
@@ -57,22 +45,15 @@ export async function POST(req: NextRequest) {
       .from('malotes-pacientes')
       .getPublicUrl(filePath);
 
-    console.log(`[CIRILA_UPLOAD] Arquivo salvo com sucesso no Supabase: ${publicUrl}`);
-
-    return NextResponse.json({
+    return Response.json({
       success: true,
       fileId,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      status: 'ATTACHED',
       url: publicUrl,
+      fileName: file.name
     });
+
   } catch (err: any) {
-    console.error('[CIRILA_UPLOAD_ERROR]', err);
-    return NextResponse.json({ 
-      success: false,
-      error: err.message || 'Erro interno no processamento do upload.' 
-    }, { status: 500 });
+    console.error('[UPLOAD_FATAL_ERROR]', err);
+    return Response.json({ error: err.message || 'Erro interno no servidor' }, { status: 500 });
   }
 }
