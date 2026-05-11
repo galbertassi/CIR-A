@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { createClient } from '@/lib/supabase/sb-server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (file && file.size > 0) {
       console.log(`[REGISTRATION][${requestId}] Iniciando upload para Supabase: ${file.name}`);
       try {
-        const supabase = supabaseAdmin;
+        const supabase = createClient();
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${crypto.randomUUID().substring(0, 5)}.${fileExt}`;
         const filePath = `cadastros/${fileName}`;

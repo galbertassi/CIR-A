@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
-import { createClient } from '@/lib/supabase/sb-server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/admin';
 
 // ─── POST: recebe e salva o arquivo no Supabase ─────────────────────────────
 
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'O arquivo excede o limite de 5MB.' }, { status: 413 });
     }
 
-    const supabase = supabaseAdmin;
+    const supabase = createClient();
     const fileId = crypto.randomUUID();
     const ext = path.extname(file.name) || '.bin';
     const fileName = `${fileId}${ext}`;
@@ -41,8 +40,18 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[CIRILA_UPLOAD_SUPABASE_ERROR]', uploadError);
-      throw new Error(`Falha no upload para o Supabase: ${uploadError.message}`);
+      console.error('[CIRILA_UPLOAD_SUPABASE_ERROR] Detalhes:', {
+        message: uploadError.message,
+        name: uploadError.name,
+        error: uploadError,
+        bucket: 'malotes-pacientes',
+        filePath
+      });
+      return NextResponse.json({ 
+        success: false, 
+        error: `Falha no armazenamento: ${uploadError.message}`,
+        details: uploadError
+      }, { status: 500 });
     }
 
     // Obter URL Pública

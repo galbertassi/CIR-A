@@ -219,12 +219,16 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
       });
 
     if (uploadError) {
-      console.error('[ATTACH_EVOLUTION] Erro no Supabase Storage:', {
+      console.error('[ATTACH_EVOLUTION] Erro crítico no Supabase Storage:', {
         message: uploadError.message,
-        name: uploadError.name,
-        error: uploadError
+        error: uploadError,
+        bucket: 'malotes-pacientes',
+        path: filePath
       });
-      throw new Error(`Falha no upload (Supabase): ${uploadError.message}`);
+      return { 
+        success: false, 
+        error: `Erro no servidor de arquivos: ${uploadError.message}` 
+      };
     }
 
     const { data: { publicUrl } } = supabase.storage

@@ -291,7 +291,7 @@ export async function GET(req: NextRequest) {
     if (mode === 'text') {
       const doc = createFinalDocument([new Paragraph({ spacing: { before: 2000 }, children: [new TextRun({ text: "CORPO DO DOCUMENTO LIMPO PARA COLAGEM MANUAL", bold: true, color: "CCCCCC" })] })], labelElements);
       const buffer = await Packer.toBuffer(doc);
-      return new NextResponse(buffer as unknown as BodyInit, {
+      return new NextResponse(new Uint8Array(buffer), {
         headers: {
           'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -404,7 +404,7 @@ export async function GET(req: NextRequest) {
             mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           });
 
-          return new NextResponse(finalBuffer as unknown as BodyInit, {
+          return new NextResponse(finalBuffer, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -418,7 +418,7 @@ export async function GET(req: NextRequest) {
           const fallbackDoc = createFinalDocument([], labelElements);
           const fallbackBuffer = await Packer.toBuffer(fallbackDoc);
           const fallbackUint8 = new Uint8Array(fallbackBuffer);
-          return new NextResponse(fallbackUint8 as unknown as BodyInit, {
+          return new NextResponse(fallbackUint8, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_S_Anexo_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -468,7 +468,7 @@ export async function GET(req: NextRequest) {
 
         const doc = createFinalDocument(content, labelElements);
         const finalBuffer = await Packer.toBuffer(doc);
-        return new NextResponse(finalBuffer as unknown as BodyInit, {
+        return new NextResponse(new Uint8Array(finalBuffer), {
           headers: {
             'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -481,7 +481,7 @@ export async function GET(req: NextRequest) {
 
     const finalDoc = createFinalDocument([], labelElements);
     const buffer = await Packer.toBuffer(finalDoc);
-    return new NextResponse(buffer as unknown as BodyInit, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
