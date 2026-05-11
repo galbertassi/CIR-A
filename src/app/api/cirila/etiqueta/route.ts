@@ -291,7 +291,7 @@ export async function GET(req: NextRequest) {
     if (mode === 'text') {
       const doc = createFinalDocument([new Paragraph({ spacing: { before: 2000 }, children: [new TextRun({ text: "CORPO DO DOCUMENTO LIMPO PARA COLAGEM MANUAL", bold: true, color: "CCCCCC" })] })], labelElements);
       const buffer = await Packer.toBuffer(doc);
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,
@@ -401,7 +401,7 @@ export async function GET(req: NextRequest) {
             compression: 'DEFLATE',
           });
 
-          return new NextResponse(finalBuffer, {
+          return new NextResponse(new Uint8Array(finalBuffer), {
             headers: {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
@@ -412,7 +412,7 @@ export async function GET(req: NextRequest) {
           // Fallback para geração segura sem merge em caso de erro no parser
           const fallbackDoc = createFinalDocument([], labelElements);
           const fallbackBuffer = await Packer.toBuffer(fallbackDoc);
-          return new NextResponse(fallbackBuffer, {
+          return new NextResponse(new Uint8Array(fallbackBuffer), {
             headers: {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               'Content-Disposition': `attachment; filename="Autorizacao_S_Anexo_${patient.replace(/\s/g, '_')}.docx"`,
@@ -461,7 +461,7 @@ export async function GET(req: NextRequest) {
 
         const doc = createFinalDocument(content, labelElements);
         const finalBuffer = await Packer.toBuffer(doc);
-        return new NextResponse(finalBuffer, {
+        return new NextResponse(new Uint8Array(finalBuffer), {
           headers: {
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
@@ -472,7 +472,7 @@ export async function GET(req: NextRequest) {
 
     const finalDoc = createFinalDocument([], labelElements);
     const finalBuffer = await Packer.toBuffer(finalDoc);
-    return new NextResponse(finalBuffer, {
+    return new NextResponse(new Uint8Array(finalBuffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,

@@ -227,11 +227,14 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
               text: `Localizei **${sanName}** no hospital **${sanHosp}**. Deseja gerar a etiqueta com esses dados?`,
               sender: 'ai',
               actions: [
-                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::1` },
+                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::1:::${userId}` },
                 { label: 'Não, informar outro', payload: 'ASK_MANUAL_ETIQUETA' }
               ]
             };
           }
+        }
+      }
+    }
 
     if (lowerQuery.includes('relatório') || lowerQuery.includes('dashboard') || lowerQuery.includes('estatística') || lowerQuery.includes('nir')) {
       const now = new Date();
@@ -357,7 +360,6 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         { label: 'Dashboard NIR', payload: 'REPORT_GENERAL' }
       ]
     };
-
   } catch (error: any) {
     console.error('CRITICAL BACKEND ERROR [askCirila]:', {
       query: query.substring(0, 100),
@@ -482,4 +484,3 @@ export async function executeEmailDispatch(patientId: string, targetType: string
     return { success: false, error: err.message };
   }
 }
-
