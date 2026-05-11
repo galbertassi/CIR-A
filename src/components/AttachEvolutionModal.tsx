@@ -27,16 +27,27 @@ export default function AttachEvolutionModal({ patientId, patientName, onClose }
       formData.append('file', file);
 
       // 1. UPLOAD VIA API ROUTE (ESTÁVEL)
-      const response = await fetch('/api/cirila/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
       // EVITA O ERRO DE RESPOSTA INESPERADA
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[UPLOAD_FETCH_ERROR]', errorText);
-        throw new Error(`Erro no servidor: ${response.status}`);
+        let errorMessage = `Erro no servidor: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) errorMessage = errorData.error;
+        } catch (e) {
+          // Se não for JSON, tenta pegar o texto (pode ser um erro do Next.js ou Vercel)
+          try {
+            const errorText = await response.text();
+            if (errorText) errorMessage = errorText.substring(0, 100);
+          } catch (e2) {}
+        }
+        
+        console.error('[UPLOAD_FETCH_ERROR]', errorMessage);
+        throw new Error(errorMessage);
       }
 
       // PROTEÇÃO EXTRA: GARANTE QUE É JSON
