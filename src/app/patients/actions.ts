@@ -198,9 +198,18 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
   }
 
   try {
-    const supabase = supabaseAdmin;
+    // 1. Tentar obter o cliente admin de forma segura
+    let supabase;
+    try {
+      supabase = supabaseAdmin;
+      // Testar se o cliente é válido tentando acessar uma propriedade
+      if (!supabase) throw new Error("Cliente Supabase não inicializado.");
+    } catch (initErr: any) {
+      console.error('[ATTACH_EVOLUTION_INIT_ERROR]', initErr.message);
+      return { success: false, error: 'Erro de configuração no servidor (Supabase Admin).' };
+    }
     
-    // 1. Gerar nome e caminho único para a evolução
+    // 2. Gerar nome e caminho único para a evolução
     const fileExt = file.name.split('.').pop();
     const fileName = `evolution_${patientId}_${Date.now()}.${fileExt}`;
     const filePath = `evolucoes/${fileName}`;
@@ -219,15 +228,10 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
       });
 
     if (uploadError) {
-      console.error('[ATTACH_EVOLUTION] Erro crítico no Supabase Storage:', {
-        message: uploadError.message,
-        error: uploadError,
-        bucket: 'malotes-pacientes',
-        path: filePath
-      });
+      console.error('[ATTACH_EVOLUTION_STORAGE_ERROR]', uploadError);
       return { 
         success: false, 
-        error: `Erro no servidor de arquivos: ${uploadError.message}` 
+        error: `Erro no Supabase: ${uploadError.message}` 
       };
     }
 
@@ -236,7 +240,6 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
       .getPublicUrl(filePath);
 
     return await prisma.$transaction(async (tx) => {
-      // 2. Atualizar o paciente com o novo anexo de evolução
       await tx.patient.update({
         where: { id: patientId },
         data: {
@@ -245,7 +248,6 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
         }
       });
 
-      // 3. Registrar no histórico do paciente
       await tx.log.create({
         data: {
           patient_id: patientId,
@@ -254,15 +256,13 @@ export async function attachMedicalEvolution(formData: FormData): Promise<Action
         }
       });
 
-      console.log(`[ATTACH_EVOLUTION] Sucesso para o paciente ${patientId}: ${publicUrl}`);
-
       revalidatePath('/patients');
       revalidatePath('/');
       return { success: true };
     });
   } catch (err: any) {
-    console.error('[ATTACH_EVOLUTION] Erro crítico:', err);
-    return { success: false, error: err.message || 'Erro interno ao processar anexo.' };
+    console.error('[ATTACH_EVOLUTION_FATAL_ERROR]', err);
+    return { success: false, error: `Erro interno crítico: ${err.message || 'Falha no processamento'}` };
   }
 }
 

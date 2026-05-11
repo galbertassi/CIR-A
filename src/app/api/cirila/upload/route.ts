@@ -40,17 +40,15 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[CIRILA_UPLOAD_SUPABASE_ERROR] Detalhes:', {
+      console.error('[CIRILA_UPLOAD_SUPABASE_ERROR]', {
+        status: uploadError.status,
         message: uploadError.message,
-        name: uploadError.name,
-        error: uploadError,
-        bucket: 'malotes-pacientes',
-        filePath
+        details: uploadError
       });
       return NextResponse.json({ 
         success: false, 
-        error: `Falha no armazenamento: ${uploadError.message}`,
-        details: uploadError
+        error: `Falha no Supabase (${uploadError.message})`,
+        code: uploadError.status || '500'
       }, { status: 500 });
     }
 
