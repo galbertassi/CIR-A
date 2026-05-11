@@ -295,6 +295,8 @@ export async function GET(req: NextRequest) {
         headers: {
           'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,
           'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'Content-Length': buffer.length.toString(),
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
         },
       });
     }
@@ -311,43 +313,94 @@ export async function GET(req: NextRequest) {
       const isImage = contentType.includes('image/') || /\.(jpg|jpeg|png)$/i.test(templateUrl);
 
       if (isDocx) {
-        const templateZip = await JSZip.loadAsync(fileBuffer);
-        const templateXml = await templateZip.file("word/document.xml")?.async("string") || "";
+        try {
+          const templateZip = await JSZip.loadAsync(fileBuffer);
+          const templateXml = await templateZip.file("word/document.xml")?.async("string") || "";
 
-        const tempDoc = new Document({ sections: [{ children: labelElements }] });
-        const tempBuffer = await Packer.toBuffer(tempDoc);
-        const tempZip = await JSZip.loadAsync(tempBuffer);
-        const labelXml = await tempZip.file("word/document.xml")?.async("string") || "";
+          // Gerar XML da etiqueta de forma limpa
+          const tempDoc = new Document({ 
+            sections: [{ 
+              properties: { page: { margin: { top: 0, right: 0, bottom: 0, left: 0 } } },
+              children: labelElements 
+            }] 
+          });
+          const tempBuffer = await Packer.toBuffer(tempDoc);
+          const tempZip = await JSZip.loadAsync(tempBuffer);
+          const labelXml = await tempZip.file("word/document.xml")?.async("string") || "";
 
-        const bodyMatch = labelXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
-        if (bodyMatch) {
-          const labelBody = bodyMatch[1].replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '');
-          const lastSectPrIndex = templateXml.lastIndexOf('<w:sectPr');
-          
-          // Estrutura de tabela via XML para garantir o posicionamento no DOCX legado
-          const spacerXml = `<w:tbl>
-            <w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>
-            <w:tr>
-              <w:trPr><w:trHeight w:val="12000" w:hRule="exact"/></w:trPr>
-              <w:tc><w:p/></w:tc>
-            </w:tr>
-            <w:tr>
-              <w:trPr><w:trHeight w:val="2500" w:hRule="exact"/></w:trPr>
-              <w:tc><w:vAlign w:val="bottom"/>${labelBody}</w:tc>
-            </w:tr>
-          </w:tbl>`;
+          const bodyMatch = labelXml.match(/<w:body[^>]*>([\s\S]*?)<\/w:body>/);
+          if (bodyMatch) {
+            // Limpar XML da etiqueta (remover sectPr e tags de seção redundantes)
+            const labelBody = bodyMatch[1]
+              .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '')
+              .replace(/<w:sectPr[\s\S]*?\/>/g, '')
+              .trim();
+            
+            const bodyCloseTag = "</w:body>";
+            const bodyCloseIndex = templateXml.lastIndexOf(bodyCloseTag);
+            
+            if (bodyCloseIndex === -1) throw new Error("Estrutura do template Word inválida.");
 
-          let mergedXml = lastSectPrIndex !== -1 
-            ? templateXml.slice(0, lastSectPrIndex) + spacerXml + templateXml.slice(lastSectPrIndex)
-            : templateXml.replace(/<\/w:body>/, `${spacerXml}</w:body>`);
+            // Localizar o sectPr final (propriedades da seção final do corpo)
+            const lastSectPrIndex = templateXml.lastIndexOf("<w:sectPr", bodyCloseIndex);
+            
+            // Estrutura de tabela via XML para garantir o posicionamento no rodapé (Layout Institucional)
+            // IMPORTANTE: Cada <w:tc> deve obrigatoriamente terminar com um <w:p/> para ser um XML válido.
+            const spacerXml = `
+              <w:tbl>
+                <w:tblPr>
+                  <w:tblW w:w="5000" w:type="pct"/>
+                  <w:tblLayout w:type="fixed"/>
+                  <w:jc w:val="center"/>
+                </w:tblPr>
+                <w:tr>
+                  <w:trPr><w:trHeight w:val="12000" w:hRule="exact"/></w:trPr>
+                  <w:tc><w:p/></w:tc>
+                </w:tr>
+                <w:tr>
+                  <w:trPr><w:trHeight w:val="2500" w:hRule="exact"/></w:trPr>
+                  <w:tc>
+                    <w:tcPr><w:vAlign w:val="bottom"/></w:tcPr>
+                    ${labelBody}
+                    <w:p/>
+                  </w:tc>
+                </w:tr>
+              </w:tbl>`;
 
-          templateZip.file("word/document.xml", mergedXml);
-          const finalBuffer = await templateZip.generateAsync({ type: 'nodebuffer' });
+            let mergedXml;
+            if (lastSectPrIndex !== -1) {
+              // Inserir ANTES do sectPr final do corpo
+              mergedXml = templateXml.slice(0, lastSectPrIndex) + spacerXml + templateXml.slice(lastSectPrIndex);
+            } else {
+              // Fallback para inserção no final do corpo
+              mergedXml = templateXml.slice(0, bodyCloseIndex) + spacerXml + bodyCloseTag;
+            }
 
-          return new NextResponse(new Uint8Array(finalBuffer), {
+            templateZip.file("word/document.xml", mergedXml);
+            const finalBuffer = await templateZip.generateAsync({ 
+              type: 'nodebuffer',
+              compression: 'DEFLATE'
+            });
+
+            return new NextResponse(new Uint8Array(finalBuffer), {
+              headers: {
+                'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
+                'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Length': finalBuffer.length.toString(),
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+              },
+            });
+          }
+        } catch (xmlError: any) {
+          console.error('[CIRILA_XML_MERGE_ERROR]', xmlError);
+          // Fallback para geração segura sem merge em caso de erro no parser
+          const fallbackDoc = createFinalDocument([], labelElements);
+          const fallbackBuffer = await Packer.toBuffer(fallbackDoc);
+          return new NextResponse(new Uint8Array(fallbackBuffer), {
             headers: {
-              'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
+              'Content-Disposition': `attachment; filename="Autorizacao_S_Anexo_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'Content-Length': fallbackBuffer.length.toString(),
             },
           });
         }
@@ -397,6 +450,8 @@ export async function GET(req: NextRequest) {
           headers: {
             'Content-Disposition': `attachment; filename="Autorizacao_${patient.replace(/\s/g, '_')}.docx"`,
             'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'Content-Length': finalBuffer.length.toString(),
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
           },
         });
       }
@@ -408,6 +463,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Disposition': `attachment; filename="Etiqueta_${patient.replace(/\s/g, '_')}.docx"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Length': buffer.length.toString(),
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0',
