@@ -244,44 +244,98 @@ export default function CirilaBotWidget() {
       // Abordagem robusta com fetch para capturar erros do servidor
       setProcessingStatus('Gerando documento institucional...');
 
-      fetch(url)
-        .then(async (res) => {
+      const safeDownload = async (fetchUrl: string, fileName: string, successMsg: string, minSize: number = 5000) => {
+        try {
+          const res = await fetch(fetchUrl, { cache: 'no-store' });
+          
           if (!res.ok) {
-            const errData = await res.json().catch(() => ({ error: 'Erro desconhecido no servidor' }));
+            const errData = await res.json().catch(() => ({ error: 'Erro interno no servidor' }));
             throw new Error(errData.error || 'Falha na geração do documento');
           }
-          return res.blob();
-        })
-        .then((blob) => {
+
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('officedocument.wordprocessingml.document')) {
+             const text = await res.text();
+             try {
+               const json = JSON.parse(text);
+               throw new Error(json.error || 'O servidor não retornou um arquivo Word válido.');
+             } catch (e) {
+               throw new Error('O servidor retornou um formato inválido.');
+             }
+          }
+
+          const blob = await res.blob();
+          
+          if (blob.size < minSize) {
+             throw new Error('O arquivo gerado parece estar incompleto ou corrompido. Tente novamente.');
+          }
+
           const downloadUrl = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = downloadUrl;
-          link.setAttribute('download', `Autorizacao_${patient.replace(/\s/g, '_')}.docx`);
+          link.setAttribute('download', fileName);
           document.body.appendChild(link);
           link.click();
           link.remove();
           window.URL.revokeObjectURL(downloadUrl);
-          setMessages(prev => [...prev, { text: `✅ **Sucesso!** O documento de **${patient}** foi gerado e o download deve ter iniciado.`, sender: 'ai' }]);
-        })
-        .catch((err) => {
+          
+          setMessages(prev => [...prev, { text: `✅ **Sucesso!** ${successMsg}`, sender: 'ai' }]);
+        } catch (err: any) {
           console.error('[CIRILA_DOWNLOAD_ERROR]', err);
           setMessages(prev => [...prev, { text: `❌ **Falha no Download:** ${err.message}`, sender: 'ai' }]);
-        })
-        .finally(() => {
+        } finally {
           setProcessingStatus(null);
-        });
+        }
+      };
+
+      safeDownload(
+        url, 
+        `Autorizacao_${patient.replace(/\s/g, '_')}.docx`, 
+        `O documento de **${patient}** foi gerado com sucesso.`
+      );
       return;
     }
 
     if (payload.startsWith('DOWNLOAD_DOCX_')) {
       const count = payload.replace('DOWNLOAD_DOCX_', '');
       const url = `/api/cirila/sobreaviso?count=${count}`;
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Mapa_Sobreaviso_${count}_chaves.docx`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      
+      setProcessingStatus(`Gerando Mapa de Sobreaviso (${count} chaves)...`);
+      
+      const safeDownload = async (fetchUrl: string, fileName: string, successMsg: string, minSize: number = 10000) => {
+        try {
+          const res = await fetch(fetchUrl, { cache: 'no-store' });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: 'Erro ao processar mapa' }));
+            throw new Error(errData.error || 'Falha no servidor');
+          }
+          
+          const contentType = res.headers.get('content-type');
+          if (!contentType || !contentType.includes('officedocument')) {
+            throw new Error('Formato de arquivo inválido retornado pelo servidor.');
+          }
+
+          const blob = await res.blob();
+          if (blob.size < minSize) throw new Error('Arquivo de mapa inválido ou muito pequeno.');
+
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+          
+          setMessages(prev => [...prev, { text: `✅ ${successMsg}`, sender: 'ai' }]);
+        } catch (err: any) {
+          setMessages(prev => [...prev, { text: `❌ **Erro no Mapa:** ${err.message}`, sender: 'ai' }]);
+        } finally {
+          setProcessingStatus(null);
+        }
+      };
+
+      safeDownload(url, `Mapa_Sobreaviso_${count}_chaves.docx`, `Mapa Gerado! O arquivo com ${count} chaves está pronto.`, 8000);
       return;
     }
 
@@ -289,26 +343,32 @@ export default function CirilaBotWidget() {
       const url = '/api/admin/reports/monthly';
       setProcessingStatus('Gerando relatório mensal consolidado...');
 
-      fetch(url)
-        .then(async (res) => {
-          if (!res.ok) throw new Error('Falha ao gerar relatório');
-          return res.blob();
-        })
-        .then((blob) => {
+      const safeDownload = async (fetchUrl: string, fileName: string) => {
+        try {
+          const res = await fetch(fetchUrl, { cache: 'no-store' });
+          if (!res.ok) throw new Error('Falha ao gerar relatório no servidor.');
+          
+          const blob = await res.blob();
+          if (blob.size < 5000) throw new Error('Relatório gerado é inválido.');
+
           const downloadUrl = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = downloadUrl;
-          link.setAttribute('download', `Relatorio_Mensal_${new Date().getMonth() + 1}_${new Date().getFullYear()}.docx`);
+          link.setAttribute('download', fileName);
           document.body.appendChild(link);
           link.click();
           link.remove();
           window.URL.revokeObjectURL(downloadUrl);
-          setMessages(prev => [...prev, { text: `✅ **Relatório Gerado!** O arquivo Word foi enviado para o seu computador.`, sender: 'ai' }]);
-        })
-        .catch((err) => {
-          setMessages(prev => [...prev, { text: `❌ **Erro:** Não consegui gerar o relatório agora.`, sender: 'ai' }]);
-        })
-        .finally(() => setProcessingStatus(null));
+          
+          setMessages(prev => [...prev, { text: `✅ **Relatório Word pronto!** Enviado para o seu computador.`, sender: 'ai' }]);
+        } catch (err: any) {
+          setMessages(prev => [...prev, { text: `❌ **Erro:** ${err.message}`, sender: 'ai' }]);
+        } finally {
+          setProcessingStatus(null);
+        }
+      };
+
+      safeDownload(url, `Relatorio_Mensal_${new Date().getMonth() + 1}_${new Date().getFullYear()}.docx`);
       return;
     }
 

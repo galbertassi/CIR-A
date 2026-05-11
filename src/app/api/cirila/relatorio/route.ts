@@ -226,6 +226,9 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Disposition': `attachment; filename="Relatorio_NIR_${type}_${now.getFullYear()}.docx"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
 

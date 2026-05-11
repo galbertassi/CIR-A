@@ -173,10 +173,13 @@ export async function GET(request: Request) {
     const uint8Array = new Uint8Array(buffer);
     console.log(`[REPORT] Sucesso! Buffer anual gerado: ${uint8Array.length} bytes`);
 
-    return new Response(uint8Array, {
+    return new NextResponse(uint8Array, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': `attachment; filename=relatorio_anual_${year}.docx`,
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error: any) {
