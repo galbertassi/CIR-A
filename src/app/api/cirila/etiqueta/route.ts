@@ -340,11 +340,22 @@ export async function GET(req: NextRequest) {
           let labelBody = labelBodyMatch[1]
             .replace(/<w:sectPr[\s\S]*?<\/w:sectPr>/g, '') // Remove propriedades de seção do label
             .replace(/<w:sectPr[\s\S]*?\/>/g, '')
-            .replace(/<w:pStyle[^>]*\/>/g, '')            // Remove estilos de parágrafo (usa padrão do template)
-            .replace(/<w:rStyle[^>]*\/>/g, '')            // Remove estilos de caractere
-            .replace(/ w:(rsid[R|P|Pr]|paraId|textId)="[^"]*"/g, '') // Remove IDs de revisão e parágrafo
-            .replace(/ (w14|w15):(paraId|textId)="[^"]*"/g, '')      // Remove extensões Office 2010/2013
+            .replace(/<w:pStyle[\s\S]*?\/>/g, '')          // Remove estilos de parágrafo
+            .replace(/<w:rStyle[\s\S]*?\/>/g, '')          // Remove estilos de caractere
+            .replace(/<w:tblStyle[\s\S]*?\/>/g, '')        // Remove estilos de tabela
+            .replace(/<w:proofState[\s\S]*?\/>/g, '')       // Remove estado de revisão
+            .replace(/<w:lang[\s\S]*?\/>/g, '')             // Remove tags de idioma
+            .replace(/ w:(rsid[R|P|Pr]|paraId|textId)="[^"]*"/g, '') // Remove IDs de revisão
+            .replace(/ (w14|w15|w16):(paraId|textId)="[^"]*"/g, '')  // Remove extensões Office recentes
             .trim();
+
+          // 3. Detectar prefixo do namespace do template (geralmente 'w')
+          const templatePrefixMatch = templateXml.match(/xmlns:(\w+)="http:\/\/schemas\.openxmlformats\.org\/wordprocessingml\/2006\/main"/);
+          const templatePrefix = templatePrefixMatch ? templatePrefixMatch[1] : "w";
+          
+          if (templatePrefix !== "w") {
+            labelBody = labelBody.replace(/w:/g, `${templatePrefix}:`);
+          }
 
           // 2. Sincronizar Namespaces (Crucial para Word não corromper)
           const labelRootMatch = labelXml.match(/<w:document([^>]*)>/);
@@ -352,7 +363,7 @@ export async function GET(req: NextRequest) {
           
           if (labelRootMatch) {
             const namespaces = labelRootMatch[1].match(/xmlns:\w+="[^"]*"/g) || [];
-            const templateRootMatch = templateXml.match(/<w:document([^>]*)>/);
+            const templateRootMatch = templateXml.match(new RegExp(`<${templatePrefix}:document([^>]*)>`));
             
             if (templateRootMatch) {
               let templateAttrs = templateRootMatch[1];
@@ -362,16 +373,8 @@ export async function GET(req: NextRequest) {
                   templateAttrs += ` ${ns}`;
                 }
               });
-              updatedTemplateXml = templateXml.replace(/<w:document[^>]*>/, `<w:document${templateAttrs}>`);
+              updatedTemplateXml = templateXml.replace(new RegExp(`<${templatePrefix}:document[^>]*>`), `<${templatePrefix}:document${templateAttrs}>`);
             }
-          }
-
-          // 3. Detectar prefixo do namespace do template (geralmente 'w')
-          const templatePrefixMatch = updatedTemplateXml.match(/xmlns:(\w+)="http:\/\/schemas\.openxmlformats\.org\/wordprocessingml\/2006\/main"/);
-          const templatePrefix = templatePrefixMatch ? templatePrefixMatch[1] : "w";
-          
-          if (templatePrefix !== "w") {
-            labelBody = labelBody.replace(/w:/g, `${templatePrefix}:`);
           }
 
           // 4. Inserção Cirúrgica: Deve ser ANTES do w:sectPr final do corpo
@@ -393,9 +396,9 @@ export async function GET(req: NextRequest) {
 
           templateZip.file("word/document.xml", mergedXml);
           
-          // Gerar o buffer final
+          // Gerar o buffer final de forma robusta como Uint8Array
           const finalBuffer = await templateZip.generateAsync({ 
-            type: 'nodebuffer',
+            type: 'uint8array',
             compression: 'DEFLATE'
           });
 
@@ -412,11 +415,12 @@ export async function GET(req: NextRequest) {
           // Fallback para geração segura sem merge em caso de erro no parser
           const fallbackDoc = createFinalDocument([], labelElements);
           const fallbackBuffer = await Packer.toBuffer(fallbackDoc);
-          return new NextResponse(new Uint8Array(fallbackBuffer), {
+          const fallbackUint8 = new Uint8Array(fallbackBuffer);
+          return new NextResponse(fallbackUint8, {
             headers: {
               'Content-Disposition': `attachment; filename="Autorizacao_S_Anexo_${patient.replace(/\s/g, '_')}.docx"`,
               'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-              'Content-Length': fallbackBuffer.length.toString(),
+              'Content-Length': fallbackUint8.length.toString(),
             },
           });
         }
