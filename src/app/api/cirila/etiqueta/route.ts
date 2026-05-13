@@ -218,15 +218,12 @@ export async function GET(req: NextRequest) {
 
     const createFinalDocument = (contentElements: any[]) => {
       return new Document({
-        title: `Autorização - ${patient.toUpperCase()}`,
+        title: "Autorização Cirila",
         creator: "Cirila Bot",
-        description: `Autorização de Exame - ${patient.toUpperCase()} - ${hospitalOrigin.toUpperCase()}`,
+        description: "Documento de Autorização Institucional",
         compatibility: {
           doNotExpandShiftReturn: true,
           useNormalStyleForList: true,
-          word11KerningPairs: true,
-          cachedColBalance: true,
-          overrideTableStyleFontSizeAndJustification: true,
         },
         sections: [{
           properties: { 
