@@ -345,17 +345,14 @@ export async function GET(req: NextRequest) {
         }
       }
     } else {
-      // Modo texto / Limpo
+      // Modo texto / Limpo (Totalmente em branco para colagem manual)
       bodyElements = [
         new Paragraph({ 
           spacing: { before: 2000 }, 
           alignment: AlignmentType.CENTER,
           children: [
             new TextRun({ 
-              text: "CORPO DO DOCUMENTO LIMPO PARA COLAGEM MANUAL", 
-              bold: true, 
-              color: "CCCCCC",
-              size: 28
+              text: "", 
             })
           ] 
         })

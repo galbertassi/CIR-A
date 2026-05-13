@@ -192,10 +192,18 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       // Se encontrou hospital e exame, é o novo padrão completo
       if (foundHospital && foundExam && hospitalIdx !== -1) {
         const firstKeywordIdx = Math.min(hospitalIdx, examIdx);
-        const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase();
         const lastKeywordIdx = Math.max(hospitalIdx, examIdx);
-        const details = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
-        const fullExam = `${foundExam} ${details}`.trim();
+        
+        // O nome do paciente é tudo antes da primeira palavra-chave (hospital ou exame)
+        const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase();
+        
+        // Captura todas as palavras entre o hospital/exame inicial e o fim dos detalhes, removendo o hospital
+        const examBase = words.slice(firstKeywordIdx, lastKeywordIdx + 1)
+          .filter(w => w.toUpperCase() !== foundHospital)
+          .join(' ').toUpperCase();
+        
+        const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
+        const fullExam = `${examBase} ${extraDetails}`.trim();
         const destination = rightSide.toUpperCase() || 'SISTEMA';
         
         // Geração imediata de chave
