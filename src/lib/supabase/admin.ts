@@ -13,10 +13,9 @@ export function createClient() {
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   if (!url || !key) {
-    console.error(`[SUPABASE_ADMIN_ERROR] Variáveis ausentes: URL=${!!url}, KEY=${!!key}`);
-    // Não lançamos erro aqui para não quebrar a avaliação do módulo no build, 
-    // mas o cliente não será criado.
-    return null;
+    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis de ambiente ausentes ou vazias. URL=${!!url}, KEY=${!!key}. Verifique o arquivo .env`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   try {
@@ -30,19 +29,26 @@ export function createClient() {
     return supabaseInstance;
   } catch (err: any) {
     console.error('[SUPABASE_ADMIN_FATAL]', err.message);
-    return null;
+    throw err;
   }
 }
 
-// Handler para evitar erros de 'undefined' ao acessar propriedades de um cliente nulo
-export const supabaseAdmin = new Proxy({}, {
+/**
+ * Proxy para o cliente Supabase Admin.
+ * Tenta inicializar o cliente no primeiro acesso e lança erro se falhar.
+ */
+export const supabaseAdmin = new Proxy({} as any, {
   get(target, prop) {
     const client = createClient();
-    if (!client) {
-      console.error(`[SUPABASE_ADMIN_PROXY_ERROR] Tentativa de acessar '${String(prop)}' sem cliente inicializado.`);
-      return () => { throw new Error("Supabase Admin não inicializado. Verifique as variáveis de ambiente."); };
+    const value = client[prop];
+    
+    // Se for uma função (como .from, .auth, etc), vinculamos ao contexto do cliente
+    if (typeof value === 'function') {
+      return value.bind(client);
     }
-    return (client as any)[prop];
+    
+    return value;
   }
 }) as ReturnType<typeof createSupabaseClient>;
+
 

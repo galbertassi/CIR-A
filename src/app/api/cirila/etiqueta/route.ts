@@ -86,10 +86,10 @@ export async function GET(req: NextRequest) {
     const getDestination = (exam: string) => {
       const e = exam.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       
-      // 1. Prioridade Máxima: COLANGIO sempre vai para RADIO VIDA
+      // 1. Prioridade Máxima: COLANGIO (independente de RNM/TC) sempre vai para RADIO VIDA
       if (e.includes('COLANGIO')) return 'RADIO VIDA';
       
-      // 2. Prioridade Máxima: ANGIO (exceto colangio) sempre vai para HMMR
+      // 2. Prioridade Máxima: ANGIO sempre vai para HMMR
       if (e.includes('ANGIO')) return 'HMMR';
       
       // 3. RNM / Ressonância Geral
@@ -304,8 +304,9 @@ export async function GET(req: NextRequest) {
 
         if (isImage) {
           const metadata = await sharp(fileBuffer).metadata();
-          const MAX_WIDTH = 300;
-          const MAX_HEIGHT = 400;
+          // Redução adicional para garantir página única (aprox. 40% do tamanho anterior)
+          const MAX_WIDTH = 250; 
+          const MAX_HEIGHT = 350;
 
           let width = metadata.width || MAX_WIDTH;
           let height = metadata.height || MAX_HEIGHT;

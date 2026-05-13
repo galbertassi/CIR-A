@@ -231,10 +231,14 @@ export default async function DashboardPage() {
                   <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
                     <HeartPulse size={18} className="text-blue-400" />
                   </div>
-                  <div>
-                    <h2 className="text-sm font-black text-white uppercase tracking-widest font-outfit">Censo de Leitos</h2>
-                    <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Disponibilidade em Tempo Real</p>
-                  </div>
+                <div>
+                  <h2 className="text-sm font-black text-white uppercase tracking-widest font-outfit">Censo de Leitos</h2>
+                  <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                    Disponibilidade em Tempo Real 
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse ml-1" />
+                    <span className="text-[7px] text-slate-600 font-medium">({new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })})</span>
+                  </p>
+                </div>
                 </div>
                 <Link href="/vagas" className="px-3 py-1 rounded-full bg-blue-500/10 text-[9px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-colors border border-blue-500/20">
                   Ver Tudo
