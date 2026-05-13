@@ -149,6 +149,18 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       };
     }
 
+    // 1.2. Resposta Específica para Ativação de Protocolo 1 (Retorno ao HSJB)
+    if (lowerQuery === 'ativar protocolo 1' || lowerQuery === 'protocolo 1') {
+      return {
+        text: "🔄 **Protocolo 1 Ativado com Sucesso!** \n\nO fluxo padrão foi restaurado. Todas as **Tomografias (TC)** serão direcionadas para o **HSJB** (São João Batista). \n\nDeseja gerar uma etiqueta agora?",
+        sender: 'ai',
+        actions: [
+          { label: 'Gerar Etiqueta (Prot. 1)', payload: 'ETIQUETA PROTOCOLO 1' },
+          { label: 'Ver Dashboard NIR', payload: 'REPORT_GENERAL' }
+        ]
+      };
+    }
+
     // 2. Lógica de Etiqueta com Parsing Robusto (NOVO PADRÃO: NOME HOSP EXAME DETALHE ETIQUETA DESTINO)
     if (lowerQuery.includes('etiqueta') || lowerQuery.includes('autorizar')) {
       const parts = lowerQuery.split(/etiqueta|autorizar|autoriza/);

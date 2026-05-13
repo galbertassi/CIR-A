@@ -14,6 +14,7 @@ import {
   HeightRule,
   TableLayoutType,
   ImageRun,
+  PageOrientation,
 } from 'docx';
 import sharp from 'sharp';
 import { prisma } from '@/lib/db';
@@ -96,6 +97,8 @@ export async function GET(req: NextRequest) {
       const labelBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
       return new Table({
         width: { size: 9000, type: WidthType.DXA },
+        layout: TableLayoutType.FIXED,
+        columnWidths: [9000],
         alignment: AlignmentType.CENTER,
         borders: {
           top: labelBorder, bottom: labelBorder, left: labelBorder, right: labelBorder,
@@ -179,25 +182,29 @@ export async function GET(req: NextRequest) {
       const destination = getDestination(examName);
       const examType = examName.toUpperCase().includes('RNM') ? 'RNM' : examName.toUpperCase().includes('TC') ? 'TC' : 'OUTRO';
 
-      // Persistência
-      await prisma.authorizationKey.create({
-        data: {
-          key: authKey,
-          patient: patient.toUpperCase(),
-          exam: examName.toUpperCase(),
-          procedure: examName.toUpperCase(),
-          origin: hospitalOrigin.toUpperCase(),
-          destination: destination.toUpperCase(),
-          professional: prof.name.toUpperCase(),
-          user_created: userId,
-          type: examType,
-          month: now.getMonth() + 1,
-          year: now.getFullYear(),
-          date: now,
-          status: 'ATIVO',
-          cns: cns
-        }
-      });
+      // Persistência: Apenas cria se a chave não existir (evita erro em re-downloads)
+      const existingKey = await prisma.authorizationKey.findUnique({ where: { key: authKey } });
+      
+      if (!existingKey) {
+        await prisma.authorizationKey.create({
+          data: {
+            key: authKey,
+            patient: patient.toUpperCase(),
+            exam: examName.toUpperCase(),
+            procedure: examName.toUpperCase(),
+            origin: hospitalOrigin.toUpperCase(),
+            destination: destination.toUpperCase(),
+            professional: prof.name.toUpperCase(),
+            user_created: userId,
+            type: examType,
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+            date: now,
+            status: 'ATIVO',
+            cns: cns
+          }
+        });
+      }
 
       labelElements.push(createLabelTable(examName, authKey, destination, patient, hospitalOrigin));
       if (index < finalExams.slice(0, 2).length - 1) {
@@ -217,16 +224,26 @@ export async function GET(req: NextRequest) {
         compatibility: {
           doNotExpandShiftReturn: true,
           useNormalStyleForList: true,
+          word11KerningPairs: true,
+          cachedColBalance: true,
+          overrideTableStyleFontSizeAndJustification: true,
         },
         sections: [{
           properties: { 
-            page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } 
+            page: { 
+              size: {
+                width: 11906, // A4 Width in twips
+                height: 16838, // A4 Height in twips
+                orientation: PageOrientation.PORTRAIT,
+              },
+              margin: { top: 720, right: 720, bottom: 720, left: 720 } 
+            } 
           },
           children: [
             new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
+              width: { size: 10466, type: WidthType.DXA },
               layout: TableLayoutType.FIXED,
-              columnWidths: [15398], // Largura total útil para A4 Retrato com margens de 720
+              columnWidths: [10466],
               borders: {
                 top: { style: BorderStyle.NONE },
                 bottom: { style: BorderStyle.NONE },
@@ -238,7 +255,7 @@ export async function GET(req: NextRequest) {
               rows: [
                 // LINHA 1: CONTEÚDO (Imagem ou Texto)
                 new TableRow({
-                  height: { value: USABLE_HEIGHT - LABEL_HEIGHT, rule: HeightRule.EXACT },
+                  height: { value: USABLE_HEIGHT - LABEL_HEIGHT, rule: HeightRule.ATLEAST },
                   children: [
                     new TableCell({
                       verticalAlign: VerticalAlign.TOP,
@@ -248,7 +265,7 @@ export async function GET(req: NextRequest) {
                 }),
                 // LINHA 2: ETIQUETA (Sempre no final)
                 new TableRow({
-                  height: { value: LABEL_HEIGHT, rule: HeightRule.EXACT },
+                  height: { value: LABEL_HEIGHT, rule: HeightRule.ATLEAST },
                   children: [
                     new TableCell({
                       verticalAlign: VerticalAlign.BOTTOM,
