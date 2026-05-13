@@ -28,6 +28,32 @@ interface MailOptions {
   }[];
 }
 
+/**
+ * Função auxiliar para baixar arquivos de URLs externas (Supabase) e converter para Buffer
+ * Necessário pois o Nodemailer em ambiente serverless/container muitas vezes não resolve URLs como path.
+ */
+async function getAttachmentBuffer(url: string) {
+  try {
+    const encodedUrl = encodeURI(url);
+    console.log(`[MAIL] Iniciando download do anexo: ${encodedUrl}`);
+    const response = await fetch(encodedUrl);
+    if (!response.ok) throw new Error(`Falha ao baixar arquivo: ${response.statusText}`);
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    if (buffer.length === 0) {
+      console.warn(`[MAIL] ALERTA: Buffer de anexo vazio para URL: ${url}`);
+    }
+
+    console.log(`[MAIL] Download concluído. Tamanho: ${(buffer.length / 1024).toFixed(2)} KB`);
+    return buffer;
+  } catch (error) {
+    console.error(`[MAIL] ERRO CRÍTICO ao baixar anexo (${url}):`, error);
+    return null;
+  }
+}
+
 export async function sendHospitalNotification({
   to,
   patientName,
@@ -48,13 +74,44 @@ export async function sendHospitalNotification({
   // Link único de confirmação por paciente
   const confirmUrl = `${siteUrl}/api/confirm-receipt?p=${patientId}&h=Hospital`;
 
+  // Processar anexos para garantir envio binário via Buffer
+  let processedAttachments: any[] = [];
+  if (attachments && attachments.length > 0) {
+    console.log(`[MAIL] Processando ${attachments.length} anexos...`);
+    
+    for (const attachment of attachments) {
+      const buffer = await getAttachmentBuffer(attachment.path);
+      
+      if (buffer) {
+        // Identificar contentType baseado na extensão
+        const isPdf = attachment.filename.toLowerCase().endsWith('.pdf');
+        const isDocx = attachment.filename.toLowerCase().endsWith('.docx');
+        const contentType = isPdf ? 'application/pdf' : (isDocx ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream');
+
+        processedAttachments.push({
+          filename: attachment.filename,
+          content: buffer,
+          contentType: contentType,
+          contentDisposition: 'attachment' // Garante que apareça como anexo e não inline
+        });
+
+        console.log(`[MAIL] Anexo pronto: ${attachment.filename} | ContentType: ${contentType} | Size: ${buffer.length} bytes`);
+      } else {
+        console.warn(`[MAIL] Pulando anexo devido a erro no download: ${attachment.filename}`);
+      }
+    }
+  }
+
   try {
+    console.log(`[MAIL] Disparando e-mail para: ${to.join(', ')}`);
+    console.log(`[MAIL] Total de anexos na mensagem: ${processedAttachments.length}`);
+    
     const info = await transporter.sendMail({
       from: `"CIRA Regulação" <${process.env.SMTP_USER}>`,
       to: to.join(', '),
       bcc: 'central.internacao@epdvr.com.br',
       subject: `[CIR-A | REGULAÇÃO AUTOMATIZADA] Solicitação de Vaga: ${patientName}`,
-      attachments: attachments,
+      attachments: processedAttachments,
       text: `
 [CIR-A | REGULAÇÃO AUTOMATIZADA] Solicitação de Vaga: ${patientName}
 Paciente: ${patientName}
@@ -100,10 +157,10 @@ Por favor, utilize o botão "Confirmar Recebimento" no e-mail em formato HTML pa
     });
 
 
-    console.log('Email enviado com sucesso:', info.messageId);
+    console.log('[MAIL] Email enviado com sucesso:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Erro detalhado no envio (SMTP):', error);
+    console.error('[MAIL] Erro detalhado no envio (SMTP):', error);
     return { success: false, error };
   }
 }

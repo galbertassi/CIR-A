@@ -42,6 +42,10 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
   const sanitizedQuery = query.trim();
   const lowerQuery = sanitizedQuery.toLowerCase();
   
+  // Detecção de Protocolo (Padrão 1: HSJB, Padrão 2: HMMR para TCs)
+  const isProtocolo2 = lowerQuery.includes('protocolo 2') || lowerQuery.includes('protocolo2');
+  const currentProtocol = isProtocolo2 ? '2' : '1';
+  
   // Obter usuário atual para auditoria NIR
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -133,6 +137,18 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       };
     }
 
+    // 1.1. Resposta Específica para Ativação de Protocolo 2
+    if (lowerQuery === 'ativar protocolo 2' || lowerQuery === 'protocolo 2') {
+      return {
+        text: "🔄 **Protocolo 2 Ativado com Sucesso!** \n\nA partir de agora, todas as **Tomografias (TC)** solicitadas nesta sessão serão direcionadas automaticamente para o **HMMR** (Munir Rafful), conforme a norma técnica. \n\nDeseja gerar uma etiqueta agora ou ver o dashboard?",
+        sender: 'ai',
+        actions: [
+          { label: 'Gerar Etiqueta (Prot. 2)', payload: 'ETIQUETA PROTOCOLO 2' },
+          { label: 'Ver Dashboard NIR', payload: 'REPORT_GENERAL' }
+        ]
+      };
+    }
+
     // 2. Lógica de Etiqueta com Parsing Robusto (NOVO PADRÃO: NOME HOSP EXAME DETALHE ETIQUETA DESTINO)
     if (lowerQuery.includes('etiqueta') || lowerQuery.includes('autorizar')) {
       const parts = lowerQuery.split(/etiqueta|autorizar|autoriza/);
@@ -194,7 +210,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
           text: `✅ **Chave Gerada: ${newKey}**\n\nIdentifiquei a solicitação:\n- Paciente: **${patientName}**\n- Exame: **${fullExam}**\n- Origem: **${foundHospital}**\n- Destino: **${destination}**\n\nO documento institucional foi preparado com a chave persistida e auditada.`,
           sender: 'ai',
           actions: [
-            { label: 'Baixar Etiqueta Oficial', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(fullExam)}:::${sanitizeCirila(destination)}:::${newKey}::::::1:::bottom:::${sanitizeCirila(foundHospital)}:::1:::${userId}` }
+            { label: 'Baixar Etiqueta Oficial', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(fullExam)}:::${sanitizeCirila(destination)}:::${newKey}::::::1:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}` }
           ]
         };
       }
@@ -227,7 +243,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
               text: `Localizei **${sanName}** no hospital **${sanHosp}**. Deseja gerar a etiqueta com esses dados?`,
               sender: 'ai',
               actions: [
-                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::1:::${userId}` },
+                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::${currentProtocol}:::${userId}` },
                 { label: 'Não, informar outro', payload: 'ASK_MANUAL_ETIQUETA' }
               ]
             };
@@ -336,7 +352,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         text: `Localizei a ficha de **${matchedPatient.name.toUpperCase()}**. \n\nDiagnóstico: **${matchedPatient.diagnosis}** \nHospital: **${matchedPatient.origin_hospital}**\n\nO que deseja fazer?`,
         sender: 'ai',
         actions: [
-          { label: 'Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(matchedPatient.name)}:::${sanitizeCirila(matchedPatient.diagnosis)}:::Dr. Plantonista:::${matchedPatient.id}:::${fileUrl}:::1:::bottom:::${sanitizeCirila(matchedPatient.origin_hospital)}:::1:::${userId}` },
+          { label: 'Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(matchedPatient.name)}:::${sanitizeCirila(matchedPatient.diagnosis)}:::Dr. Plantonista:::${matchedPatient.id}:::${fileUrl}:::1:::bottom:::${sanitizeCirila(matchedPatient.origin_hospital)}:::${currentProtocol}:::${userId}` },
           { label: 'Disparar E-mails', payload: `ASK_EMAIL_DISPATCH:::${matchedPatient.id}:::ALL` },
           { label: 'Ver Prontuário', payload: `NAVIGATE_PATIENT:::${matchedPatient.id}` }
         ]

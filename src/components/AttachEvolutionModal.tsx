@@ -23,8 +23,15 @@ export default function AttachEvolutionModal({ patientId, patientName, onClose }
     setError(null);
 
     try {
+      // VALIDAÇÃO PREVENTIVA (Limite Vercel: 4.5MB)
+      const MAX_SIZE = 4.5 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). O limite é de 4.5MB.`);
+      }
+
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('patientId', patientId);
 
       // 1. UPLOAD VIA API ROUTE (ESTÁVEL)
       const response = await fetch('/api/upload', {

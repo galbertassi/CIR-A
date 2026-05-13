@@ -86,17 +86,21 @@ export async function sendMassBedRequest(
     // Preparar Anexos (Malote + Evolução)
     const massBedRequestAttachments: { filename: string; path: string }[] = [];
     if (patient.attachment_url) {
+      console.log(`[ACTION] Preparando anexo de malote: ${patient.attachment_url}`);
       massBedRequestAttachments.push({
         filename: patient.attachment_name || 'MALOTE_PACIENTE.pdf',
         path: patient.attachment_url
       });
     }
     if (patient.evolution_url) {
+      console.log(`[ACTION] Preparando anexo de evolução: ${patient.evolution_url}`);
       massBedRequestAttachments.push({
         filename: patient.evolution_name || 'EVOLUCAO_MEDICA.pdf',
         path: patient.evolution_url
       });
     }
+
+    console.log(`[ACTION] Total de anexos preparados: ${massBedRequestAttachments.length}`);
 
     // DISPARO REAL PELO SERVIDOR SMTP
     await sendHospitalNotification({
