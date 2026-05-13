@@ -22,7 +22,6 @@ export default function MassBlastModal({
   const [loading, setLoading] = useState(false);
   const [isSent, setIsSent] = useState(false);
 
-  const canOfferToHNSG = severity !== 'CTI' && severity !== 'SALA_VERMELHA';
 
   const isTargeted = !!initialSelectedUnits && initialSelectedUnits.length > 0;
 
@@ -153,8 +152,6 @@ export default function MassBlastModal({
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {publicUnitsToShow.map(unit => {
-                  const isHNSG = unit.includes('Nelson Gonçalves');
-                  const disabled = isHNSG && !canOfferToHNSG;
                   const checked = selectedUnits.includes(unit);
                   return (
                     <label key={unit} style={{
@@ -164,23 +161,18 @@ export default function MassBlastModal({
                       padding: '12px 16px',
                       background: checked ? '#eff6ff' : '#f8fafc',
                       borderRadius: '10px',
-                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                       border: `1px solid ${checked ? '#bfdbfe' : '#e2e8f0'}`,
                       transition: 'all 0.15s',
-                      opacity: disabled ? 0.5 : 1
                     }}>
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => !disabled && toggleUnit(unit)}
-                        disabled={disabled}
+                        onChange={() => toggleUnit(unit)}
                         style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#1e40af' }}
                       />
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span style={{ fontSize: '0.875rem', fontWeight: 600, color: checked ? '#1e40af' : '#334155' }}>{unit}</span>
-                        {isHNSG && !canOfferToHNSG && (
-                          <span style={{ fontSize: '0.65rem', color: '#dc2626', fontWeight: 700, textTransform: 'uppercase', marginTop: '2px' }}>⚠️ Restrito (Apenas Clínica)</span>
-                        )}
                       </div>
                     </label>
                   );

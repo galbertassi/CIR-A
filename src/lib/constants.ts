@@ -1,7 +1,6 @@
 export const PUBLIC_HOSPITALS = [
   "Hospital São João Batista (HSJB)",
   "Hospital Munir Raffur (HMMR)",
-  "Hospital Doutor Nelson Gonçalves (HNSG)",
 ];
 
 export const PRIVATE_HOSPITALS = [
@@ -21,7 +20,6 @@ export const SEVERITY_LEVELS = [
 export const HOSPITAL_CONTACTS: Record<string, { phone: string, email: string }> = {
   "Hospital São João Batista (HSJB)": { phone: "5524999755006", email: "nir2.hsjb@hsjb.org.br" },
   "Hospital Munir Raffur (HMMR)": { phone: "5524993068957", email: "transferenciasnirhmmr@gmail.com" },
-  "Hospital Doutor Nelson Gonçalves (HNSG)": { phone: "5524999372561", email: "niraterrado@gmail.com" },
   "Hospital H.FOA": { phone: "5524999999994", email: "centraldevagas@hfoa.org.br" },
   "Hospital Santa Cecília (HSC)": { phone: "5524999999995", email: "regulacaosus@hospitalsantacecilia.org.br" },
   "Hospital Viver Mais": { phone: "5524999999996", email: "internacao@vivermaishospital.com.br" },

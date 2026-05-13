@@ -23,6 +23,8 @@ export async function saveBedAvailability(hospital_name: string, bedData: {
         });
 
         revalidatePath('/vagas')
+        revalidatePath('/patients')
+        revalidatePath('/', 'layout')
         revalidatePath('/')
         return { success: true }
     } catch (error: any) {

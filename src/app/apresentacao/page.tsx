@@ -179,7 +179,7 @@ export default function ApresentacaoCIRA() {
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <h3 style={{ fontSize: '1.2rem', color: '#38bdf8', marginBottom: '1rem' }}>Rede Pública</h3>
-                  <p style={{ color: '#94a3b8' }}>São João Batista, Retiro e Nelson Gonçalves compartilham seu censo ativo.</p>
+                  <p style={{ color: '#94a3b8' }}>Hospitais municipais integrados compartilhando seu censo ativo.</p>
                 </div>
                 <div style={{ background: 'rgba(255,255,255,0.03)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <h3 style={{ fontSize: '1.2rem', color: '#38bdf8', marginBottom: '1rem' }}>Rede Conveniada</h3>

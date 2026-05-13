@@ -149,7 +149,7 @@ export default function AdminHospitalsPage() {
                 type="text" 
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="Ex: Hospital Municipal Nelson Gonçalves"
+                placeholder="Ex: Hospital Municipal Munir Rafful"
                 required
                 className="input-base"
                 style={{ background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', padding: '0.8rem', borderRadius: '10px', color: 'white' }}

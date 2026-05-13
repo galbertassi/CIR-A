@@ -167,7 +167,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
       
-      const hospitals = ['hmmr', 'hsjb', 'radio vida', 'hospital', 'hjv', 'nelson', 'retomada'];
+      const hospitals = ['hmmr', 'hsjb', 'radio vida', 'hospital', 'hjv', 'retomada'];
       const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'colangio', 'ultrassom', 'eco'];
       
       let foundHospital = '';
@@ -473,8 +473,6 @@ export async function executeEmailDispatch(patientId: string, targetType: string
       // Regra da Rede Pública
       if (targetType === 'PUBLIC' && h.type !== 'PUBLICO') return false;
 
-      // Regra Nelson Gonçalves: Só aceita Clínica Médica (não aceita CTI/GRAVE)
-      if (h.name.toLowerCase().includes('nelson') && isGrave) return false;
 
       // Filtro de Capacidade do Hospital
       if (isGrave && !h.accepts_cti) return false;

@@ -9,7 +9,6 @@ async function main() {
   const hospitals = [
     { hospital_name: 'Hospital São João Batista (HSJB)', cti_masc: 2, cti_fem: 1, clinica_masc: 10, clinica_fem: 8, sem_vagas: false },
     { hospital_name: 'Hospital Mun. Dr. Munir Rafful (Retiro)', cti_masc: 1, cti_fem: 2, clinica_masc: 5, clinica_fem: 5, sem_vagas: false },
-    { hospital_name: 'Hospital Nelson Gonçalves (Antigo Mater Dei)', cti_masc: 0, cti_fem: 0, clinica_masc: 12, clinica_fem: 10, sem_vagas: false },
   ]
 
   for (const h of hospitals) {

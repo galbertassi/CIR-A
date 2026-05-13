@@ -77,7 +77,7 @@ export default function PatientForm() {
           ))}
         </select>
         <small style={{ color: 'var(--text-secondary)' }}>
-          Pacientes do nível Alta ou Crítica contam com restrições de transferência (Ex: HNSG).
+          Pacientes do nível Alta ou Crítica contam com restrições de transferência para unidades específicas.
         </small>
       </div>
 

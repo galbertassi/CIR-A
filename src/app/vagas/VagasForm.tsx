@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { saveBedAvailability } from './actions'
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export default function VagasForm({ hospitalName, initialData }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [semVagas, setSemVagas] = useState(initialData.sem_vagas);
   
@@ -39,6 +41,7 @@ export default function VagasForm({ hospitalName, initialData }: Props) {
         return;
       }
       
+      router.refresh();
       alert('Censo atualizado com sucesso!');
     } catch (e: any) {
       alert('Erro inesperado: ' + e.message);

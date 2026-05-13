@@ -21,13 +21,6 @@ async function main() {
       accepts_cti: true,
       accepts_clinica: true,
     },
-    {
-      name: 'Hospital Nelson Gonçalves (Antigo Aterrado)',
-      email: 'niraterrado@gmail.com',
-      type: 'PUBLICO',
-      accepts_cti: false, // Regra: Não aceita CTI
-      accepts_clinica: true,
-    },
     // REDE PRIVADA / CONTRATADA
     {
       name: 'Hospital Santa Cecília',

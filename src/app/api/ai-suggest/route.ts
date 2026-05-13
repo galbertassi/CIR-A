@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     } else if (patient.severity === 'HIGH') {
       suggestion = '🏥 Prioridade de transferência para Unidades de Terapia Intensiva dos pólos principais (São João Batista / Retiro).';
     } else {
-      suggestion = '✅ Fluxo padrão. Tentar hospitais de retaguarda (ex: Nelson Gonçalves) para desocupar leitos de porta.';
+      suggestion = '✅ Fluxo padrão. Tentar hospitais de retaguarda para desocupar leitos de porta.';
     }
 
     // Em uma implementação real, chamaríamos a API LLM (ex: Gemini/OpenAI) aqui.

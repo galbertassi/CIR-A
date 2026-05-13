@@ -41,19 +41,23 @@ export default function AttachEvolutionModal({ patientId, patientName, onClose }
 
       // EVITA O ERRO DE RESPOSTA INESPERADA
       if (!response.ok) {
-        let errorMessage = `Erro no servidor: ${response.status}`;
+        let errorMessage = `Erro no servidor (${response.status})`;
         try {
           const errorData = await response.json();
-          if (errorData.error) errorMessage = errorData.error;
+          // Prioriza a mensagem de erro específica do backend
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details && typeof errorData.details === 'string') {
+              console.error('[UPLOAD_DETAIL]', errorData.details);
+            }
+          }
         } catch (e) {
-          // Se não for JSON, tenta pegar o texto (pode ser um erro do Next.js ou Vercel)
           try {
             const errorText = await response.text();
             if (errorText) errorMessage = errorText.substring(0, 100);
           } catch (e2) {}
         }
         
-        console.error('[UPLOAD_FETCH_ERROR]', errorMessage);
         throw new Error(errorMessage);
       }
 

@@ -6,13 +6,14 @@ import DashboardCharts from './DashboardCharts'
 import PrintButton from '@/components/PrintButton'
 import PrivateHospitalsChart from '@/components/PrivateHospitalsChart'
 import InteractiveCirilaPanel from '@/components/InteractiveCirilaPanel'
-import { PRIVATE_HOSPITALS } from '@/lib/constants'
+import { PRIVATE_HOSPITALS, ALL_HOSPITALS } from '@/lib/constants'
 import DashboardQueue from '@/components/DashboardQueue'
 import CirilaAvatar from '@/components/CirilaAvatar'
 import { createClient } from '../lib/supabase/sb-server'
 import { calculatePatientScore } from '../lib/scoring'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export default async function DashboardPage() {
   const thirtyDaysAgo = new Date()
@@ -250,7 +251,9 @@ export default async function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-3">
-                  {availabilities.map(h => {
+                  {availabilities
+                    .filter(h => ALL_HOSPITALS.includes(h.hospital_name))
+                    .map(h => {
                     const totalVagas = (h.cti_masc || 0) + (h.cti_fem || 0) + (h.clinica_masc || 0) + (h.clinica_fem || 0);
 
                     return (
