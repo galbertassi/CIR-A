@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     const patient = sanitizeCirila(searchParams.get('patient')?.replace(/\+/g, ' ') || 'PACIENTE');
     const professionalKey = searchParams.get('professional')?.toLowerCase() || 'paola';
     const templateUrl = searchParams.get('templateUrl');
-    const providedKey = searchParams.get('key');
+    const providedKeys = (searchParams.get('key') || '').split(',');
     const examsRaw = sanitizeCirila(searchParams.get('exam')?.replace(/\+/g, ' ') || 'EXAME');
     const hospitalOrigin = sanitizeCirila(searchParams.get('hospitalOrigin')?.replace(/\+/g, ' ') || 'HOSPITAL ORIGEM');
     const qty = parseInt(searchParams.get('qty') || '1');
@@ -106,8 +106,25 @@ export async function GET(req: NextRequest) {
       return 'HSJB';
     };
 
-    const createLabelTable = (examName: string, authKey: string, destination: string, pName: string, hOrigin: string) => {
+    const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
       const labelBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
+      
+      const authLines = exams.map((ex, idx) => {
+        return new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { before: idx === 0 ? 40 : 20 },
+          children: [
+            new TextRun({
+              text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} – ${hOrigin.toUpperCase()} - ${ex.name.toUpperCase()} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
+              bold: true,
+              size: 24,
+              font: { name: 'Arial' },
+              color: '000000',
+            }),
+          ],
+        });
+      });
+
       return new Table({
         width: { size: 9000, type: WidthType.DXA },
         layout: TableLayoutType.FIXED,
@@ -150,30 +167,7 @@ export async function GET(req: NextRequest) {
                       }),
                     ],
                   }),
-                  new Paragraph({ children: [] }),
-                  new Paragraph({
-                    alignment: AlignmentType.LEFT,
-                    spacing: { before: 20, after: 40 },
-                    children: [
-                      new TextRun({
-                        text: 'DCRAA – SMSVR – DEPARTAMENTO DE CONTROLE E REGULAÇÃO',
-                        bold: true,
-                        size: 20,
-                        font: { name: 'Arial' },
-                        color: '000000',
-                      }),
-                    ],
-                  }),
-                  new Paragraph({
-                    alignment: AlignmentType.LEFT,
-                    spacing: { before: 40 },
-                    children: [
-                      new TextRun({
-                        text: `${dateStr} : ${authKey} - ${pName.toUpperCase()} – ${hOrigin.toUpperCase()} - ${examName.toUpperCase()} AUTORIZADO PARA ${destination.toUpperCase()}`,
-                        bold: true, size: 24, font: { name: 'Arial' }, color: '000000',
-                      }),
-                    ],
-                  }),
+                  ...authLines
                 ],
               }),
             ],
@@ -190,14 +184,15 @@ export async function GET(req: NextRequest) {
     const labelElements: any[] = [];
     const now = new Date();
 
-    for (const [index, examName] of finalExams.slice(0, 2).entries()) {
-      const authKey = (index === 0 && providedKey) ? providedKey : await generateSecureKey();
+    const examsToProcess = finalExams.slice(0, 2);
+    const resolvedExams = [];
+
+    for (const [index, examName] of examsToProcess.entries()) {
+      const authKey = (providedKeys[index]) ? providedKeys[index] : await generateSecureKey();
       const destination = getDestination(examName);
       const examType = examName.toUpperCase().includes('RNM') ? 'RNM' : examName.toUpperCase().includes('TC') ? 'TC' : 'OUTRO';
 
-      // Persistência: Apenas cria se a chave não existir (evita erro em re-downloads)
       const existingKey = await prisma.authorizationKey.findUnique({ where: { key: authKey } });
-      
       if (!existingKey) {
         await prisma.authorizationKey.create({
           data: {
@@ -218,11 +213,11 @@ export async function GET(req: NextRequest) {
           }
         });
       }
+      resolvedExams.push({ name: examName, key: authKey, dest: destination });
+    }
 
-      labelElements.push(createLabelTable(examName, authKey, destination, patient, hospitalOrigin));
-      if (index < finalExams.slice(0, 2).length - 1) {
-        labelElements.push(new Paragraph({ spacing: { before: 100, after: 100 } }));
-      }
+    if (resolvedExams.length > 0) {
+      labelElements.push(createLabelTable(resolvedExams, patient, hospitalOrigin));
     }
 
     // ── Layout de Blindagem (Fixed Footer) ───────────────────────────────────

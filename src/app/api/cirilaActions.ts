@@ -24,11 +24,11 @@ export type CirilaResponse = {
 async function generateUniqueKey(attempts: number = 3): Promise<string> {
   for (let i = 0; i < attempts; i++) {
     const key = Math.random().toString(36).substring(2, 7).toUpperCase();
-    
+
     // Verificar se já existe no banco (tanto em AuthorizationKey quanto CirilaAudit)
     const exists = await prisma.authorizationKey.findFirst({ where: { key } });
     const existsAudit = await prisma.cirilaAudit.findFirst({ where: { key } });
-    
+
     if (!exists && !existsAudit) return key;
   }
   // Se falhar após 3 tentativas (improvável para 5 caracteres), aumenta o tamanho
@@ -41,11 +41,11 @@ async function generateUniqueKey(attempts: number = 3): Promise<string> {
 export async function askCirila(query: string): Promise<CirilaResponse> {
   const sanitizedQuery = query.trim();
   const lowerQuery = sanitizedQuery.toLowerCase();
-  
+
   // Detecção de Protocolo (Padrão 1: HSJB, Padrão 2: HMMR para TCs)
   const isProtocolo2 = lowerQuery.includes('protocolo 2') || lowerQuery.includes('protocolo2');
   const currentProtocol = isProtocolo2 ? '2' : '1';
-  
+
   // Obter usuário atual para auditoria NIR
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -57,9 +57,9 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const parts = query.split(':::');
       const patientId = parts[1];
       const type = parts[2] || 'ALL';
-      
+
       const result = await executeEmailDispatch(patientId, type);
-      
+
       if (result.success) {
         return {
           text: `✅ **Operação Concluída!** Disparei e-mails para **${result.count} hospitais**. \n\nDestinos: ${result.targetNames?.join(', ')}. \n\nAgora é só aguardar o retorno deles no NIR.`,
@@ -83,7 +83,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
 
       for (let i = 0; i < count; i++) {
         const newKey = await generateUniqueKey();
-        
+
         try {
           await prisma.authorizationKey.create({
             data: {
@@ -166,92 +166,117 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const parts = lowerQuery.split(/etiqueta|autorizar|autoriza/);
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
-      
-      const hospitals = ['hmmr', 'hsjb', 'radio vida', 'hospital', 'hjv', 'retomada'];
-      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'colangio', 'ultrassom', 'eco'];
-      
+
+      const hospitals = ['hmmr', 'hsjb', 'radio vida', 'hospital', 'hjv', 'retomada', 'hmpagb', 'upa', 'caism', 'viver mais', 'h.foa'];
+      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'ultrassom', 'eco', 'doppler'];
+
       let foundHospital = '';
-      let foundExam = '';
-      
       const words = leftSide.split(/\s+/);
       let hospitalIdx = -1;
-      let examIdx = -1;
+      let examIndices: number[] = [];
       
       for (let i = 0; i < words.length; i++) {
         const w = words[i].toLowerCase();
-        if (hospitals.some(h => w === h || w.includes(h))) {
+        // Detecta Hospital
+        if (hospitalIdx === -1 && hospitals.some(h => w === h || w.includes(h))) {
           foundHospital = words[i].toUpperCase();
           hospitalIdx = i;
         }
-        if (exams.some(e => w === e || w.includes(e))) {
-          foundExam = words[i].toUpperCase();
-          examIdx = i;
+        // Detecta todos os índices de exames
+        if (exams.some(e => w === e || (w.length > 2 && e.includes(w)))) {
+          examIndices.push(i);
         }
       }
       
-      // Se encontrou hospital e exame, é o novo padrão completo
-      if (foundHospital && foundExam && hospitalIdx !== -1) {
-        const firstKeywordIdx = Math.min(hospitalIdx, examIdx);
-        const lastKeywordIdx = Math.max(hospitalIdx, examIdx);
+      // Se encontrou hospital e pelo menos um exame
+      if (foundHospital && examIndices.length > 0) {
+        const firstKeywordIdx = Math.min(hospitalIdx, examIndices[0]);
         
-        // O nome do paciente é tudo antes da primeira palavra-chave (hospital ou exame)
+        // O nome do paciente é tudo antes da primeira palavra-chave detectada
         const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase();
         
-        // Captura todas as palavras entre o hospital/exame inicial e o fim dos detalhes, removendo o hospital
-        const examBase = words.slice(firstKeywordIdx, lastKeywordIdx + 1)
-          .filter(w => w.toUpperCase() !== foundHospital)
-          .join(' ').toUpperCase();
-        
-        const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
-        const fullExam = `${examBase} ${extraDetails}`.trim();
-        
-        // Lógica de Destino Inteligente (Sincronizada com route.ts)
-        let destination = rightSide.replace(/PARA/i, '').trim().toUpperCase();
-        
-        if (!destination || destination === 'SISTEMA') {
-          const e = fullExam.toUpperCase();
-          if (e.includes('COLANGIO')) {
-            destination = 'RADIO VIDA';
-          } else if (e.includes('ANGIO')) {
-            destination = 'HMMR';
-          } else if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) {
-            destination = 'RADIO VIDA';
-          } else if (e.includes('TC') || e.includes('TOMOGRAFIA')) {
-            destination = currentProtocol === '2' ? 'HMMR' : 'HSJB';
-          } else {
-            destination = 'HSJB';
+        // Separar múltiplos exames
+        let detectedExams: string[] = [];
+        if (examIndices.length > 1) {
+          for (let i = 0; i < examIndices.length; i++) {
+            const start = examIndices[i];
+            const end = examIndices[i+1] || words.length;
+            let examText = words.slice(start, end).join(' ').toUpperCase();
+            // Limpeza: remove o hospital se ele ficou "preso" no texto do exame
+            examText = examText.replace(foundHospital, '').trim();
+            if (examText) detectedExams.push(examText);
           }
+        } else {
+          // Apenas um exame (padrão anterior)
+          const lastKeywordIdx = Math.max(hospitalIdx, examIndices[0]);
+          const examBase = words.slice(examIndices[0], lastKeywordIdx + 1)
+            .filter(w => w.toUpperCase() !== foundHospital)
+            .join(' ').toUpperCase();
+          const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
+          detectedExams.push(`${examBase} ${extraDetails}`.trim());
         }
+
+        // Limita a 2 exames para caber na etiqueta institucional
+        const finalExamsList = detectedExams.slice(0, 2);
         
-        // Geração imediata de chave
-        const newKey = await generateUniqueKey();
-        const now = new Date();
+        // Lógica de Destino e Profissional
+        let destination = rightSide.replace(/PARA/i, '').trim().toUpperCase();
+        const profKeys = ['inima', 'inimá', 'paola', 'carlos', 'roberto', 'sabrina', 'sabina', 'barenco', 'rosely', 'mazoni', 'gabriel'];
+        const detectedProf = profKeys.find(p => rightSide.toLowerCase().includes(p) || leftSide.toLowerCase().includes(p));
+        let foundProfessional = detectedProf || 'paola';
+
+        if (profKeys.includes(destination.toLowerCase())) destination = '';
+
+        // Geração de Chaves para Auditoria
+        const keys: string[] = [];
+        const destinations: string[] = [];
         
-        await prisma.authorizationKey.create({
-          data: {
-            key: newKey,
-            patient: patientName || 'AVULSA',
-            exam: fullExam,
-            origin: foundHospital,
-            destination: destination,
-            professional: destination,
-            type: (fullExam.includes('RNM') || fullExam.includes('RMN')) ? 'RNM' : 'TC',
-            user_created: userId,
-            month: now.getMonth() + 1,
-            year: now.getFullYear(),
-            status: 'ATIVO'
-          }
-        });
+        // Lógica de Destino Espelhada da API (para consistência no DB)
+        const getInternalDest = (ex: string) => {
+          const e = ex.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (e.includes('COLANGIO')) return 'RADIO VIDA';
+          if (e.includes('ANGIO')) return 'HMMR';
+          if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) return 'RADIO VIDA';
+          if (e.includes('TC') || e.includes('TOMOGRAFIA')) return currentProtocol === '2' ? 'HMMR' : 'HSJB';
+          return 'HSJB';
+        };
+
+        for (const ex of finalExamsList) {
+          const k = await generateUniqueKey();
+          const now = new Date();
+          const dest = getInternalDest(ex);
+          
+          await prisma.authorizationKey.create({
+            data: {
+              key: k,
+              patient: patientName || 'AVULSA',
+              exam: ex,
+              origin: foundHospital,
+              destination: dest,
+              professional: foundProfessional.toUpperCase(),
+              type: (ex.includes('RNM') || ex.includes('RMN')) ? 'RNM' : 'TC',
+              user_created: userId,
+              month: now.getMonth() + 1,
+              year: now.getFullYear(),
+              status: 'ATIVO'
+            }
+          });
+          keys.push(k);
+          destinations.push(dest);
+        }
 
         return {
-          text: `✅ **Chave Gerada: ${newKey}**\n\nIdentifiquei a solicitação:\n- Paciente: **${patientName}**\n- Exame: **${fullExam}**\n- Origem: **${foundHospital}**\n- Destino: **${destination}**\n\nO documento institucional foi preparado com a chave persistida e auditada.`,
+          text: `✅ **${keys.length} Chaves Geradas: ${keys.join(' e ')}**\n\nIdentifiquei múltiplos exames:\n- Paciente: **${patientName}**\n- Exames: \n  ${finalExamsList.map((e, idx) => `${idx+1}. ${e} (${destinations[idx]})`).join('\n  ')}\n- Origem: **${foundHospital}**\n- Assinatura: **${foundProfessional.toUpperCase()}**`,
           sender: 'ai',
           actions: [
-            { label: 'Baixar Etiqueta Oficial', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(fullExam)}:::${sanitizeCirila(destination)}:::${newKey}::::::1:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}` }
+            { 
+              label: `Baixar Etiqueta (${keys.length} Chaves)`, 
+              payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(finalExamsList.join(','))}:::${foundProfessional}:::${keys.join(',')}::::::${keys.length}:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}` 
+            }
           ]
         };
       }
-      
+
       // Fallback para o padrão antigo assistido
       const etiquetaMatch = lowerQuery.match(/(?:etiqueta|autorizar|autoriza|gera etiqueta|faz etiqueta)\s+(?:para\s+)?(.*?)(?:\s+(?:do|no)\s+hospital\s+(.*?))?$/i);
       if (etiquetaMatch) {
@@ -292,7 +317,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
     if (lowerQuery.includes('relatório') || lowerQuery.includes('dashboard') || lowerQuery.includes('estatística') || lowerQuery.includes('nir')) {
       const now = new Date();
       const firstDayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      
+
       const [patientsMonth, totalKeys] = await Promise.all([
         prisma.patient.findMany({ where: { created_at: { gte: firstDayMonth } } }),
         prisma.authorizationKey.count()
@@ -300,7 +325,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
 
       const tc = patientsMonth.filter(p => p.diagnosis.toUpperCase().includes('TC')).length;
       const rnm = patientsMonth.filter(p => p.diagnosis.toUpperCase().includes('RNM')).length;
-      
+
       return {
         text: `📊 **Dashboard NIR - ${now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}**\n\nNeste mês, já realizamos **${patientsMonth.length}** regulações.\n\n- 🖥️ **TC:** ${tc}\n- 🧲 **RNM:** ${rnm}\n- 🔑 **Chaves Totais:** ${totalKeys}\n\nO que deseja analisar agora?`,
         sender: 'ai',
@@ -343,7 +368,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
     if (lowerQuery.includes('gerar chave') || (lowerQuery.includes('chave') && (lowerQuery.includes('nova') || lowerQuery.includes('uma')))) {
       const novaChave = await generateUniqueKey();
       const now = new Date();
-      
+
       await prisma.authorizationKey.create({
         data: {
           key: novaChave,
@@ -420,11 +445,11 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
-    
+
     return {
       text: "🚨 **Erro de Estabilidade:** Tive um problema interno ao processar sua solicitação. O erro foi registrado com contexto completo para auditoria técnica.",
       sender: 'ai',
-      payload: { 
+      payload: {
         error: error.message,
         timestamp: new Date().toISOString()
       }
@@ -492,14 +517,14 @@ export async function executeEmailDispatch(patientId: string, targetType: string
 
     // Preparar Anexos: Malote + Evolução Médica - Garantir tipagem estrita
     const attachments: CirilaAttachment[] = [];
-    
+
     if (patient.attachment_url) {
       attachments.push({
         filename: patient.attachment_name || 'malote-paciente.pdf',
         path: patient.attachment_url
       });
     }
-    
+
     if (patient.evolution_url) {
       attachments.push({
         filename: patient.evolution_name || 'evolucao-medica.pdf',

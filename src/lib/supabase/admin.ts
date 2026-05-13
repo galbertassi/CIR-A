@@ -13,10 +13,11 @@ export function createClient() {
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   const isServer = typeof window === 'undefined';
 
-  console.log(`[SUPABASE_ADMIN_DEBUG] isServer=${isServer}, url_len=${url.length}, key_len=${key.length}`);
+  const envKeys = Object.keys(process.env).filter(k => k.includes('SUPABASE'));
+  console.log(`[SUPABASE_ADMIN_DEBUG] isServer=${isServer}, url_len=${url.length}, key_len=${key.length}, envKeys=[${envKeys.join(', ')}]`);
 
   if (!url || !key) {
-    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis ausentes. isServer=${isServer}, URL=${!!url} (${url.length} chars), KEY=${!!key} (${key.length} chars). Verifique o .env e REINICIE o servidor.`;
+    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis ausentes. isServer=${isServer}, URL=${!!url} (${url.length} chars), KEY=${!!key} (${key.length} chars). Encontradas: [${envKeys.join(', ')}]. Verifique o .env e REINICIE o servidor.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
