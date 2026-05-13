@@ -85,11 +85,24 @@ export async function GET(req: NextRequest) {
 
     const getDestination = (exam: string) => {
       const e = exam.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      if (e.includes('ANGIOTC') || e.includes('ANGIO')) return 'HMMR';
+      
+      // 1. Prioridade Máxima: COLANGIO sempre vai para RADIO VIDA
       if (e.includes('COLANGIO')) return 'RADIO VIDA';
+      
+      // 2. Prioridade Máxima: ANGIO (exceto colangio) sempre vai para HMMR
+      if (e.includes('ANGIO')) return 'HMMR';
+      
+      // 3. RNM / Ressonância Geral
       if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) return 'RADIO VIDA';
-      if (e.includes('TC') || e.includes('TOMOGRAFIA')) return protocolo === 2 ? 'HMMR' : 'HSJB';
+      
+      // 4. TC / Tomografia (Depende do Protocolo se não for Angio)
+      if (e.includes('TC') || e.includes('TOMOGRAFIA')) {
+        return protocolo === 2 ? 'HMMR' : 'HSJB';
+      }
+      
+      // 5. Outros exames específicos
       if (e.includes('ECO') || e.includes('ECOCARDIOGRAMA')) return 'HSJB';
+      
       return 'HSJB';
     };
 
@@ -140,7 +153,7 @@ export async function GET(req: NextRequest) {
                   new Paragraph({ children: [] }),
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    spacing: { before: 40, after: 80 },
+                    spacing: { before: 20, after: 40 },
                     children: [
                       new TextRun({
                         text: 'DCRAA – SMSVR – DEPARTAMENTO DE CONTROLE E REGULAÇÃO',
@@ -153,7 +166,7 @@ export async function GET(req: NextRequest) {
                   }),
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    spacing: { before: 120 },
+                    spacing: { before: 40 },
                     children: [
                       new TextRun({
                         text: `${dateStr} : ${authKey} - ${pName.toUpperCase()} – ${hOrigin.toUpperCase()} - ${examName.toUpperCase()} AUTORIZADO PARA ${destination.toUpperCase()}`,
@@ -213,8 +226,8 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Layout de Blindagem (Fixed Footer) ───────────────────────────────────
-    const USABLE_HEIGHT = 15000; // Reduzido de 15300 para maior compatibilidade
-    const LABEL_HEIGHT = 3000; // Aumentado levemente para acomodar margens internas
+    const USABLE_HEIGHT = 15500; 
+    const LABEL_HEIGHT = 3000;
 
     const createFinalDocument = (contentElements: any[]) => {
       return new Document({
@@ -233,7 +246,7 @@ export async function GET(req: NextRequest) {
                 height: 16838, // A4 Height in twips
                 orientation: PageOrientation.PORTRAIT,
               },
-              margin: { top: 720, right: 720, bottom: 720, left: 720 } 
+              margin: { top: 500, right: 500, bottom: 500, left: 500 } 
             } 
           },
           children: [
@@ -256,6 +269,7 @@ export async function GET(req: NextRequest) {
                   children: [
                     new TableCell({
                       verticalAlign: VerticalAlign.TOP,
+                      margins: { top: 0, bottom: 0, left: 0, right: 0 },
                       children: contentElements.length > 0 ? contentElements : [new Paragraph("")],
                     }),
                   ],
@@ -266,6 +280,7 @@ export async function GET(req: NextRequest) {
                   children: [
                     new TableCell({
                       verticalAlign: VerticalAlign.BOTTOM,
+                      margins: { top: 0, bottom: 0, left: 0, right: 0 },
                       children: labelElements,
                     }),
                   ],
@@ -289,8 +304,8 @@ export async function GET(req: NextRequest) {
 
         if (isImage) {
           const metadata = await sharp(fileBuffer).metadata();
-          const MAX_WIDTH = 400;
-          const MAX_HEIGHT = 550;
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 400;
 
           let width = metadata.width || MAX_WIDTH;
           let height = metadata.height || MAX_HEIGHT;
@@ -307,7 +322,7 @@ export async function GET(req: NextRequest) {
           bodyElements = [
             new Paragraph({
               alignment: AlignmentType.CENTER,
-              spacing: { before: 200 },
+              spacing: { before: 0, after: 0 },
               children: [
                 new ImageRun({
                   data: processedImageBuffer,
@@ -348,8 +363,7 @@ export async function GET(req: NextRequest) {
       // Modo texto / Limpo (Totalmente em branco para colagem manual)
       bodyElements = [
         new Paragraph({ 
-          spacing: { before: 2000 }, 
-          alignment: AlignmentType.CENTER,
+          spacing: { before: 1 }, 
           children: [
             new TextRun({ 
               text: "", 

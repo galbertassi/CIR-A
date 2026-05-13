@@ -204,7 +204,24 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         
         const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
         const fullExam = `${examBase} ${extraDetails}`.trim();
-        const destination = rightSide.toUpperCase() || 'SISTEMA';
+        
+        // Lógica de Destino Inteligente (Sincronizada com route.ts)
+        let destination = rightSide.replace(/PARA/i, '').trim().toUpperCase();
+        
+        if (!destination || destination === 'SISTEMA') {
+          const e = fullExam.toUpperCase();
+          if (e.includes('COLANGIO')) {
+            destination = 'RADIO VIDA';
+          } else if (e.includes('ANGIO')) {
+            destination = 'HMMR';
+          } else if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) {
+            destination = 'RADIO VIDA';
+          } else if (e.includes('TC') || e.includes('TOMOGRAFIA')) {
+            destination = currentProtocol === '2' ? 'HMMR' : 'HSJB';
+          } else {
+            destination = 'HSJB';
+          }
+        }
         
         // Geração imediata de chave
         const newKey = await generateUniqueKey();
