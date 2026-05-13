@@ -298,7 +298,7 @@ export async function GET(req: NextRequest) {
                 new ImageRun({
                   data: processedImageBuffer,
                   transformation: { width: finalWidth, height: finalHeight },
-                }),
+                } as any),
               ],
             })
           ];
