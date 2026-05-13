@@ -11,9 +11,12 @@ export function createClient() {
 
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
   const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const isServer = typeof window === 'undefined';
+
+  console.log(`[SUPABASE_ADMIN_DEBUG] isServer=${isServer}, url_len=${url.length}, key_len=${key.length}`);
 
   if (!url || !key) {
-    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis de ambiente ausentes ou vazias. URL=${!!url}, KEY=${!!key}. Verifique o arquivo .env`;
+    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis ausentes. isServer=${isServer}, URL=${!!url} (${url.length} chars), KEY=${!!key} (${key.length} chars). Verifique o .env e REINICIE o servidor.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
   }
