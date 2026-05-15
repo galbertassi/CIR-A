@@ -46,12 +46,18 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
   const isProtocolo2 = lowerQuery.includes('protocolo 2') || lowerQuery.includes('protocolo2');
   const currentProtocol = isProtocolo2 ? '2' : '1';
 
-  // Obter usuário atual para auditoria NIR
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const userId = user?.id || 'CIRILA_SYSTEM';
-
   try {
+    // Obter usuário atual para auditoria NIR (DENTRO do try para capturar falhas de env/auth)
+    let userId = 'CIRILA_SYSTEM';
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) userId = user.id;
+    } catch (authErr: any) {
+      console.warn('[CIRILA_AUTH_WARN] Falha ao obter usuário, usando fallback SYSTEM:', authErr.message);
+      // Não damos throw aqui para permitir que a Cirila funcione em modo público/anônimo se necessário
+    }
+
     // 0. Lógica de Dispatch de Email (Invocada por botões)
     if (lowerQuery.startsWith('ask_email_dispatch:::')) {
       const parts = query.split(':::');
@@ -167,8 +173,17 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
 
-      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa', 'hsc', 'vivermais', 'hfoa'];
-      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler', 'ecodoppler'];
+      const hospitals = [
+        'hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 
+        'hnsg', 'viver mais', 'h.foa', 'hsc', 'vivermais', 'hfoa', 'unimed', 'hinja',
+        'hospital do retiro', 'municipais', 'ufrj', 'hu', 'hosp', 'viver-mais', 'h-foa',
+        'viver', 'foa', 'vivermais', 'h-sc', 'hmm', 'h.sc', 'viver mais'
+      ];
+      const exams = [
+        'tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 
+        'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler', 'ecodoppler',
+        'raio-x', 'raiox', 'rx', 'eletro', 'ecg'
+      ];
 
       let foundHospital = '';
       const words = leftSide.split(/\s+/);
@@ -177,29 +192,46 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
 
       for (let i = 0; i < words.length; i++) {
         const w = words[i].toLowerCase();
-        const w2 = i < words.length - 1 ? `${w} ${words[i+1].toLowerCase()}` : '';
+        const normalizedW = w.replace(/[\.\-]/g, '').toLowerCase();
+        const w2 = i < words.length - 1 ? `${words[i]} ${words[i+1]}`.toLowerCase() : '';
+        const normalizedW2 = w2.replace(/[\.\-]/g, '').toLowerCase();
         
-        // 1. Detecta Hospital (Prioridade para nomes compostos como "viver mais")
-        const compoundHospital = hospitals.find(h => h === w2);
-        if (compoundHospital && hospitalIdx === -1) {
-          foundHospital = w2.toUpperCase();
-          if (foundHospital === 'VIVER MAIS' || foundHospital === 'VIVERMAIS') foundHospital = 'VIVER MAIS';
+        // 1. Detecta Hospital (Prioridade para nomes compostos como "viver mais" ou "h.foa")
+        const compoundMatch = hospitals.find(h => {
+          const hNorm = h.replace(/[\.\-]/g, '').toLowerCase();
+          return normalizedW2 === hNorm || w2 === h.toLowerCase();
+        });
+
+        if (compoundMatch && hospitalIdx === -1) {
+          if (compoundMatch.includes('viver')) foundHospital = 'VIVER MAIS';
+          else if (compoundMatch.includes('foa')) foundHospital = 'HFOA';
+          else if (compoundMatch.includes('hmm')) foundHospital = 'HMMR';
+          else if (compoundMatch.includes('sc')) foundHospital = 'HSC';
+          else foundHospital = compoundMatch.toUpperCase();
+          
           hospitalIdx = i;
           i++; // Pula a próxima palavra do nome composto
           continue;
         }
 
-        const normalizedW = w.replace(/\./g, '').toLowerCase();
-        if (hospitalIdx === -1 && hospitals.some(h => normalizedW === h.replace(/\./g, '').toLowerCase())) {
-          // Normalizações Institucionais Estritas
-          if (normalizedW === 'hfoa' || normalizedW === 'h.foa') foundHospital = 'HFOA';
-          else if (normalizedW === 'hsc') foundHospital = 'HSC';
-          else if (normalizedW === 'hmm' || normalizedW === 'hmmr') foundHospital = 'HMMR';
-          else if (normalizedW === 'hsjb') foundHospital = 'HSJB';
-          else if (normalizedW === 'vivermais' || normalizedW === 'viver mais') foundHospital = 'VIVER MAIS';
-          else foundHospital = normalizedW.toUpperCase();
-          
-          hospitalIdx = i;
+        // Detecta hospital simples
+        if (hospitalIdx === -1) {
+          const simpleMatch = hospitals.find(h => 
+            normalizedW === h.replace(/[\.\-]/g, '').toLowerCase() || 
+            w === h.toLowerCase()
+          );
+
+          if (simpleMatch) {
+            if (simpleMatch === 'hsc' || simpleMatch === 'h.sc') foundHospital = 'HSC';
+            else if (simpleMatch.toLowerCase().includes('foa')) foundHospital = 'HFOA';
+            else if (simpleMatch === 'hmm' || simpleMatch === 'hmmr') foundHospital = 'HMMR';
+            else if (simpleMatch === 'hsjb') foundHospital = 'HSJB';
+            else if (simpleMatch.toLowerCase().includes('viver')) foundHospital = 'VIVER MAIS';
+            else if (simpleMatch === 'hnsg') foundHospital = 'HNSG';
+            else foundHospital = simpleMatch.toUpperCase();
+            
+            hospitalIdx = i;
+          }
         }
 
         // 2. Detecta índices de exames
@@ -215,73 +247,70 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         }
       }
 
+
       // Se encontrou hospital e pelo menos um exame
       if (foundHospital && examIndices.length > 0) {
         const firstKeywordIdx = Math.min(hospitalIdx, examIndices[0]);
 
         // O nome do paciente é tudo antes da primeira palavra-chave detectada
-        const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase();
+        const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase().trim();
 
         // Separar múltiplos exames
         let detectedExams: string[] = [];
+        const originalHospMatch = words[hospitalIdx]; // Captura o termo original usado na query
+
         if (examIndices.length > 1) {
           for (let i = 0; i < examIndices.length; i++) {
             const start = examIndices[i];
             const end = examIndices[i + 1] || words.length;
             let examText = words.slice(start, end).join(' ').toUpperCase();
-            // Limpeza: remove o hospital se ele ficou "preso" no texto do exame
-            const hospRegex = new RegExp(foundHospital.replace(/\./g, '\\.?'), 'gi');
+            
+            // Limpeza do hospital resíduo (usa tanto o nome normalizado quanto o termo original)
+            const hospPattern = foundHospital.replace(/\./g, '\\.?').replace(/\s+/g, '\\s+');
+            const origPattern = originalHospMatch.replace(/\./g, '\\.?').replace(/\s+/g, '\\s+');
+            const hospRegex = new RegExp(`\\b(${hospPattern}|${origPattern})\\b`, 'gi');
+            
             examText = examText.replace(hospRegex, '').trim();
             if (examText) detectedExams.push(examText);
           }
         } else {
-          // Apenas um exame (padrão anterior)
+          // Apenas um exame
           const lastKeywordIdx = Math.max(hospitalIdx, examIndices[0]);
-          const hospRegex = new RegExp(foundHospital.replace(/\./g, '\\.?'), 'gi');
+          const hospPattern = foundHospital.replace(/\./g, '\\.?').replace(/\s+/g, '\\s+');
+          const origPattern = originalHospMatch.replace(/\./g, '\\.?').replace(/\s+/g, '\\s+');
+          const hospRegex = new RegExp(`\\b(${hospPattern}|${origPattern})\\b`, 'gi');
+          
           const examBase = words.slice(examIndices[0], lastKeywordIdx + 1)
-            .filter(w => !w.toUpperCase().match(hospRegex) && w.toUpperCase() !== 'HMM')
+            .filter(w => !w.toUpperCase().match(hospRegex))
             .join(' ').toUpperCase();
           const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
           detectedExams.push(`${examBase} ${extraDetails}`.trim());
         }
 
-        // Limita a 2 exames para caber na etiqueta institucional
+
         const rawExamsList = detectedExams.slice(0, 2);
 
-        // Normalização de nomes de exames conforme solicitado
         const finalExamsList = rawExamsList.map(ex => {
           let e = ex.toUpperCase();
 
-          // 1. Limpeza de bordas: remove traços, hifens e conjunções sozinhas que ficaram no início/fim
-          e = e.replace(/^[–\-\s,eE\.]+/g, '') // Início
+          // Limpeza profunda de bordas e resíduos
+          e = e.replace(/^[–\-\s,eE\.]+/g, '') // Início (remove 'E' órfão)
                .replace(/[–\-\s,eE\.]+$/g, '') // Fim
+               .replace(/\s+/g, ' ')
                .trim();
 
-          // 2. Prioridade COLANGIO: deve ser COLANGIO RNM e não pode ter TC
+          // Normalizações específicas
           if (e.includes('COLANGIO')) {
-            e = e.replace(/\bTC\b/g, ''); // Remove TC intruso
-            if (!e.includes('RNM') && !e.includes('RMN')) {
-              e = e.replace('COLANGIO', 'COLANGIO RNM');
-            }
+            e = e.replace(/\bTC\b/g, '');
+            if (!e.includes('RNM') && !e.includes('RMN')) e = e.replace('COLANGIO', 'COLANGIO RNM');
+          } else if (e.includes('ANGIO')) {
+            e = e.replace(/\bRNM\b|\bRMN\b/g, '');
+            if (!e.includes('TC')) e = e.replace('ANGIO', 'ANGIO TC');
           }
 
-          // 3. Prioridade ANGIO: deve ser ANGIO TC e não pode ter RNM/RMN
-          else if (e.includes('ANGIO')) {
-            e = e.replace(/\bRNM\b|\bRMN\b/g, ''); // Remove RNM intruso
-            if (!e.includes('TC')) {
-              e = e.replace('ANGIO', 'ANGIO TC');
-            }
-          }
-
-          // 4. Normalização RMN -> RNM
           e = e.replace(/\bRMN\b/g, 'RNM');
-
-          // Limpeza final de espaços e duplicidades comuns
-          return e.replace(/\s+/g, ' ')
-            .replace('COLANGIO RNM RNM', 'COLANGIO RNM')
-            .replace('ANGIO TC TC', 'ANGIO TC')
-            .trim();
-        });
+          return e.trim();
+        }).filter(e => e.length > 0);
 
         // Lógica de Destino e Profissional
         let destination = rightSide.replace(/PARA/i, '').trim().toUpperCase();
@@ -480,16 +509,27 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       orderBy: { created_at: 'desc' }
     });
 
-    const searchTerms = lowerQuery.split(' ').filter(t => t.length > 2);
+    // Limpeza inteligente da query para busca de nome
+    // Remove palavras técnicas que confundem a busca no banco
+    const stopWords = [
+      'etiqueta', 'autorizar', 'autoriza', 'rnm', 'tc', 'rmn', 'ressonancia', 'tomografia',
+      'abdome', 'pelve', 'torax', 'crânio', 'cranio', 'com', 'contraste', 'sem', 'hfoa', 'h.foa',
+      'hsjb', 'hmmr', 'hsc', 'viver', 'mais', 'vivermais', 'radio', 'vida', 'radiovida',
+      'hmm', 'foa', 'viver', 'hsc', 'rnm', 'abdome', 'pelve', 'etiqueta', 'inima', 'paola'
+    ];
+
+    const searchTerms = lowerQuery.split(' ')
+      .filter(t => t.length > 2 && !stopWords.includes(t.replace(/[\.\-]/g, '')));
+
     const matchedPatient = patientsInDB.find(p => {
       const patientName = p.name.toLowerCase();
-      // Busca mais criteriosa: se a query tem "etiqueta", exige match mais forte ou evita fallback genérico
-      if (lowerQuery.includes('etiqueta') && searchTerms.length > 1) {
+      
+      if (searchTerms.length > 0) {
         const nameParts = p.name.toLowerCase().split(' ');
-        // Verifica se todos os termos de busca (ex: "alessandra", "ferreira") estão presentes no nome do paciente
+        // Verifica se os termos principais de busca (ex: "alessandra", "ferreira") estão presentes
         return searchTerms.every(term => nameParts.some(np => np.includes(term)));
       }
-      return searchTerms.some(term => patientName.includes(term)) || lowerQuery.includes(p.id.substring(0, 8));
+      return lowerQuery.includes(p.id.substring(0, 8));
     });
 
     if (matchedPatient) {
@@ -552,11 +592,16 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       timestamp: new Date().toISOString()
     });
 
+    const isEnvError = error.message.includes('Configuração') || error.message.includes('Credenciais');
+
     return {
-      text: "🚨 **Erro de Estabilidade:** Tive um problema interno ao processar sua solicitação. O erro foi registrado com contexto completo para auditoria técnica.",
+      text: isEnvError 
+        ? `🚨 **Erro de Configuração:** O servidor da Cirila está sem as chaves de acesso necessárias (Supabase). \n\nDetalhe: ${error.message}`
+        : "🚨 **Erro de Estabilidade:** Tive um problema interno ao processar sua solicitação. O erro foi registrado para auditoria técnica.",
       sender: 'ai',
       payload: {
         error: error.message,
+        type: isEnvError ? 'CONFIG_ERROR' : 'RUNTIME_ERROR',
         timestamp: new Date().toISOString()
       }
     };

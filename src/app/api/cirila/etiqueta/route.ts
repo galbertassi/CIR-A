@@ -126,21 +126,26 @@ export async function GET(req: NextRequest) {
         return protocolo === 2 ? 'HMMR' : 'HSJB';
       }
 
-      return 'HSJB';
-    };
-
-    const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
+          const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
       const labelBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
 
-      const authLines = exams.map((ex, idx) => {
+      const authLines = exams.map((ex) => {
+        // Limpeza agressiva de caracteres fantasmas, hífens soltos ou resíduos no texto do exame
+        const cleanExamName = ex.name.toUpperCase()
+          .replace(/\bE\b/g, '') // Remove "E" isolado que aparece em multi-exames
+          .replace(/^[–\-\s,eE\.]+/g, '') // Início
+          .replace(/[–\-\s,eE\.]+$/g, '') // Fim
+          .replace(/\s+/g, ' ')
+          .trim();
+
         return new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { before: idx === 0 ? 400 : 200 }, // Espaçamento extra antes da primeira autorização
+          spacing: { before: 240, after: 0 }, // Espaçamento entre autorizações
           children: [
             new TextRun({
-              text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} - ${hOrigin.toUpperCase()} - ${ex.name.toUpperCase()} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
+              text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} - ${hOrigin.toUpperCase()} - ${cleanExamName} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
               bold: true,
-              size: 20, // 10pt
+              size: 20, // 10pt (Padrão institucional)
               font: { name: 'Arial' },
               color: '000000',
             }),
@@ -148,13 +153,17 @@ export async function GET(req: NextRequest) {
         });
       });
 
-      const profLine = `${prof.name.toUpperCase()}${prof.registro && prof.registro !== 'REGISTRO' ? ` – ${prof.registro.toUpperCase()}` : ''}${prof.cargo && prof.cargo !== 'CARGO' ? ` – ${prof.cargo.toUpperCase()}` : ''}`;
-      const lineSeparator = "_______________________________________________________________________________";
+      const cleanRegistro = (prof.registro || '').replace('REGISTRO', '').trim();
+      const cleanCargo = (prof.cargo || '').replace('CARGO', '').trim();
+      const profLine = `${prof.name.toUpperCase()}${cleanRegistro ? ` – ${cleanRegistro.toUpperCase()}` : ''}${cleanCargo ? ` – ${cleanCargo.toUpperCase()}` : ''}`;
+      
+      // Separador horizontal longo e visível
+      const lineSeparator = "__________________________________________________________________________________________";
 
       return new Table({
-        width: { size: 9000, type: WidthType.DXA },
+        width: { size: 9500, type: WidthType.DXA },
         layout: TableLayoutType.FIXED,
-        columnWidths: [9000],
+        columnWidths: [9500],
         alignment: AlignmentType.CENTER,
         borders: {
           top: labelBorder, bottom: labelBorder, left: labelBorder, right: labelBorder,
@@ -164,8 +173,9 @@ export async function GET(req: NextRequest) {
           new TableRow({
             children: [
               new TableCell({
-                margins: { top: 150, bottom: 150, left: 100, right: 100 },
+                margins: { top: 200, bottom: 200, left: 150, right: 150 },
                 children: [
+                  // 1. Assinatura do Profissional (CAIXA ALTA, NEGRITO, PRETO)
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
                     spacing: { before: 0, after: 0 },
@@ -179,19 +189,21 @@ export async function GET(req: NextRequest) {
                       }),
                     ],
                   }),
+                  // 2. Linha Divisória
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    spacing: { before: 0, after: 0 },
+                    spacing: { before: 0, after: 50 },
                     children: [
                       new TextRun({
                         text: lineSeparator,
                         bold: true,
-                        size: 16, // Um pouco menor para a linha não ficar muito grossa
+                        size: 20,
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
                     ],
                   }),
+                  // 3. Departamento (Fonte 16pt - 32 half-points)
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
                     spacing: { before: 100, after: 0 },
@@ -199,17 +211,18 @@ export async function GET(req: NextRequest) {
                       new TextRun({
                         text: "Departamento, Controle, Regulação – Avaliação e Auditoria – DCRAA – SMSVR",
                         bold: true,
-                        size: 26, // 13pt (aumentado um pouco como solicitado)
+                        size: 32, // 16pt
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
                     ],
                   }),
-                  // Espaçamento entre o cabeçalho e a primeira autorização
+                  // Espaçamento em branco maior entre departamento e autorização (conforme pedido)
                   new Paragraph({
-                    spacing: { before: 200, after: 0 },
+                    spacing: { before: 600, after: 200 },
                     children: [new TextRun("")],
                   }),
+                  // 4. Linhas de Autorização (10pt, Negrito, Preto)
                   ...authLines
                 ],
               }),
@@ -219,7 +232,9 @@ export async function GET(req: NextRequest) {
       });
     };
 
+
     // ── Auditoria e Usuário ──────────────────────────────────────────────────
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'CIRILA_SYSTEM';

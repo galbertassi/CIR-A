@@ -8,9 +8,9 @@ export async function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Configuração do Supabase (URL/KEY) não encontrada. Verifique as variáveis de ambiente.'
-    )
+    const errorMsg = `[SUPABASE_SERVER_ERROR] Variáveis ausentes: ${!supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL ' : ''}${!supabaseAnonKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : ''}. Verifique seu arquivo .env ou as Configurações da Vercel.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   return createServerClient(

@@ -4,14 +4,23 @@ let supabaseInstance: any = null;
 
 /**
  * Cria ou retorna uma instância singleton do cliente Supabase Admin (Service Role).
- * Inclui fallback robusto para leitura de arquivo .env caso process.env falhe.
  */
 export function getAdminClient() {
   if (supabaseInstance) return supabaseInstance;
 
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-  let key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  let key = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 
+    process.env.SUPABASE_SERVICE_KEY || 
+    process.env.SERVICE_ROLE_KEY || 
+    ''
+  ).trim();
   const isServer = typeof window === 'undefined';
+  
+  // Detecta se estamos na fase de build do Next.js ou se é um worker
+  const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || 
+                  process.env.CI === 'true' ||
+                  (process.env.NODE_ENV === 'production' && !process.env.SUPABASE_SERVICE_ROLE_KEY && isServer);
 
   // FALLBACK: Leitura direta do .env se estiver no servidor e a chave estiver vazia
   if (!key && isServer) {
@@ -23,60 +32,93 @@ export function getAdminClient() {
       const envPaths = [
         path.join(rootDir, '.env'),
         path.join(rootDir, '.env.local'),
-        '.env',
-        '.env.local'
+        path.join(rootDir, '.env.production'),
+        path.resolve(rootDir, '.env'),
+        path.join(rootDir, '..', '.env'),
       ];
       
+      console.log(`[SUPABASE_ADMIN_DEBUG] Chaves ausentes. Tentando fallback FS. Root: ${rootDir}`);
+
       for (const envPath of envPaths) {
-        const absolutePath = path.isAbsolute(envPath) ? envPath : path.resolve(rootDir, envPath);
-        
-        if (fs.existsSync(absolutePath)) {
-          const envContent = fs.readFileSync(absolutePath, 'utf8');
-          // Regex que aceita \r\n (Windows) e ignora espaços/aspas
-          const match = envContent.match(/^SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s]+)["']?\s*$/m);
-          
-          if (match && match[1]) {
-            key = match[1].trim();
-            if (key) break;
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          // Regex mais agressiva: ignora comentários, espaços e aceita aspas simples/duplas
+          const regexes = [
+            /^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
+            /^\s*SUPABASE_SERVICE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
+            /^\s*SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m
+          ];
+
+          for (const r of regexes) {
+            const match = envContent.match(r);
+            if (match && match[1]) {
+              key = match[1].trim();
+              if (key) {
+                console.log(`[SUPABASE_ADMIN_INIT] Chave carregada via fallback FS: ${envPath}`);
+                break;
+              }
+            }
           }
+          if (key) break;
         }
       }
-    } catch (err) {
-      // Silencioso durante build para não quebrar a CI
+    } catch (err: any) {
+      console.warn(`[SUPABASE_ADMIN_WARN] Falha no fallback FS: ${err.message}`);
     }
   }
 
-  // Se as variáveis ainda estiverem ausentes, retornamos null ou lançamos erro APENAS se for uma tentativa de uso real
-  // Para o build do Next.js, não podemos lançar erro no nível do módulo.
   if (!url || !key) {
+    const msg = `[SUPABASE_ADMIN_ERROR] Credenciais ausentes. URL=${url ? 'OK' : 'MISSING'}, KEY=${key ? 'OK' : 'MISSING'}.`;
+
+    if (isBuild) {
+      console.warn(`[SUPABASE_ADMIN_BUILD_WARN] Suprimindo erro durante build: ${msg}`);
+      return null;
+    }
+    
+    console.error(msg);
     return null;
   }
 
-  supabaseInstance = createSupabaseClient(url, key, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-
-  return supabaseInstance;
+  try {
+    supabaseInstance = createSupabaseClient(url, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+    return supabaseInstance;
+  } catch (err) {
+    console.error('[SUPABASE_ADMIN_FATAL] Falha ao inicializar cliente:', err);
+    return null;
+  }
 }
 
 /**
- * Proxy para o cliente Supabase Admin.
- * A inicialização é "preguiçosa" (lazy): só ocorre quando o cliente é efetivamente utilizado.
- * Isso evita que o 'npm run build' quebre na Vercel/CI caso as variáveis de ambiente 
- * não estejam disponíveis no momento da compilação.
+ * Proxy "Preguiçoso" (Lazy) para o cliente Supabase Admin.
+ * Protege o build e adia a inicialização para o momento do uso.
  */
 export const supabaseAdmin = new Proxy({} as any, {
   get(target, prop) {
+    if (typeof prop === 'symbol' || prop === 'inspect' || prop === 'then' || prop === 'constructor' || prop === 'prototype') {
+      return undefined;
+    }
+
     const client = getAdminClient();
     
     if (!client) {
-      throw new Error(
-        `[SUPABASE_ADMIN_ERROR] Tentativa de usar supabaseAdmin sem credenciais configuradas. ` +
-        `Verifique SUPABASE_SERVICE_ROLE_KEY no seu ambiente.`
-      );
+      const isBuild = process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI === 'true';
+
+      if (isBuild) {
+        // DURANTE O BUILD: Retorna um Proxy "Dummy" que aceita tudo
+        const noopProxy: any = new Proxy(() => noopProxy, {
+          get: () => noopProxy,
+          apply: () => noopProxy
+        });
+        return noopProxy;
+      }
+
+      // EM RUNTIME: Lança erro apenas se REALMENTE tentar usar o cliente sem chaves
+      throw new Error(`[SUPABASE_ADMIN_ERROR] Credenciais ausentes no servidor. Verifique o arquivo .env.`);
     }
 
     const value = client[prop];
@@ -86,3 +128,7 @@ export const supabaseAdmin = new Proxy({} as any, {
     return value;
   }
 }) as ReturnType<typeof createSupabaseClient>;
+
+export const createClient = getAdminClient;
+
+

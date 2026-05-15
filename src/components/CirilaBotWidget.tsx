@@ -249,8 +249,13 @@ export default function CirilaBotWidget() {
         console.log('[CIRILA_WIDGET] Automação: Disparando download imediato...');
         handleActionClick(downloadAction.payload);
       }
-    } catch (err) {
-      setMessages(prev => [...prev, { text: '❌ Erro ao conectar com o servidor da Cirila.', sender: 'ai' }]);
+    } catch (err: any) {
+      console.error('[CIRILA_WIDGET_ERROR] Falha ao enviar mensagem:', err);
+      setMessages(prev => [...prev, { 
+        text: '❌ Erro ao conectar com o servidor da Cirila.', 
+        sender: 'ai',
+        payload: { error: err.message }
+      }]);
     } finally {
       setLoading(false);
       setExpression('neutral');
