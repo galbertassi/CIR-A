@@ -167,8 +167,8 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
 
-      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa'];
-      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler'];
+      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa', 'hsc'];
+      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler', 'ecodoppler'];
 
       let foundHospital = '';
       const words = leftSide.split(/\s+/);
@@ -177,14 +177,29 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
 
       for (let i = 0; i < words.length; i++) {
         const w = words[i].toLowerCase();
-        // Detecta Hospital (Match exato ou o nome do hospital contém a palavra)
-        if (hospitalIdx === -1 && hospitals.some(h => w === h || h.includes(w))) {
-          foundHospital = words[i].toUpperCase();
-          // Normalização HMM -> HMMR
+        const w2 = i < words.length - 1 ? `${w} ${words[i+1].toLowerCase()}` : '';
+        
+        // 1. Detecta Hospital (Prioridade para nomes compostos)
+        const compoundHospital = hospitals.find(h => h === w2);
+        if (compoundHospital && hospitalIdx === -1) {
+          foundHospital = w2.toUpperCase();
+          hospitalIdx = i;
+          i++; // Pula a próxima palavra do nome composto
+          continue;
+        }
+
+        const normalizedW = w.replace(/\./g, '');
+        if (hospitalIdx === -1 && hospitals.some(h => normalizedW === h.replace(/\./g, ''))) {
+          foundHospital = normalizedW.toUpperCase();
+          // Normalizações Institucionais Estritas
           if (foundHospital === 'HMM') foundHospital = 'HMMR';
+          if (foundHospital === 'HFOA') foundHospital = 'HFOA';
+          if (foundHospital === 'HSC') foundHospital = 'HSC';
+          if (foundHospital === 'VIVERMAIS') foundHospital = 'VIVER MAIS';
           hospitalIdx = i;
         }
-        // Detecta todos os índices de exames (com proteção para exames compostos)
+
+        // 2. Detecta índices de exames
         if (exams.some(e => w === e || (w.length > 2 && e.includes(w)))) {
           // Prevenção de quebra em ANGIO TC
           if (w === 'tc' && i > 0 && words[i - 1].toLowerCase().includes('angio')) continue;
@@ -212,14 +227,16 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
             const end = examIndices[i + 1] || words.length;
             let examText = words.slice(start, end).join(' ').toUpperCase();
             // Limpeza: remove o hospital se ele ficou "preso" no texto do exame
-            examText = examText.replace(foundHospital, '').trim();
+            const hospRegex = new RegExp(foundHospital.replace(/\./g, '\\.?'), 'gi');
+            examText = examText.replace(hospRegex, '').trim();
             if (examText) detectedExams.push(examText);
           }
         } else {
           // Apenas um exame (padrão anterior)
           const lastKeywordIdx = Math.max(hospitalIdx, examIndices[0]);
+          const hospRegex = new RegExp(foundHospital.replace(/\./g, '\\.?'), 'gi');
           const examBase = words.slice(examIndices[0], lastKeywordIdx + 1)
-            .filter(w => w.toUpperCase() !== foundHospital && w.toUpperCase() !== 'HMM')
+            .filter(w => !w.toUpperCase().match(hospRegex) && w.toUpperCase() !== 'HMM')
             .join(' ').toUpperCase();
           const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
           detectedExams.push(`${examBase} ${extraDetails}`.trim());
@@ -316,13 +333,17 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
           destinations.push(dest);
         }
 
+        // Captura de anexo se houver
+        const fileUrlMatch = query.match(/\[file_url:(.*?)\]/);
+        const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
+
         return {
           text: `✅ **${keys.length} Chaves Geradas: ${keys.join(' e ')}**\n\nIdentifiquei múltiplos exames:\n- Paciente: **${patientName}**\n- Exames: \n  ${finalExamsList.map((e, idx) => `${idx + 1}. ${e} (${destinations[idx]})`).join('\n  ')}\n- Origem: **${foundHospital}**\n- Assinatura: **${foundProfessional.toUpperCase()}**`,
           sender: 'ai',
           actions: [
             {
               label: `Baixar Etiqueta (${keys.length} Chaves)`,
-              payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(finalExamsList.join(','))}:::${foundProfessional}:::${keys.join(',')}::::::${keys.length}:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}`
+              payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(finalExamsList.join(','))}:::${foundProfessional}:::${keys.join(',')}:::${fileUrl}:::${keys.length}:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}`
             }
           ]
         };
@@ -466,12 +487,32 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
     if (matchedPatient) {
       const fileUrlMatch = query.match(/\[file_url:(.*?)\]/);
       const fileUrl = fileUrlMatch ? fileUrlMatch[1] : '';
+      const authKey = await generateUniqueKey();
+      const now = new Date();
+
+      // Registrar a chave no banco para auditoria
+      await prisma.authorizationKey.create({
+        data: {
+          key: authKey,
+          patient: matchedPatient.name.toUpperCase(),
+          exam: matchedPatient.diagnosis.toUpperCase(),
+          procedure: matchedPatient.diagnosis.toUpperCase(),
+          origin: matchedPatient.origin_hospital.toUpperCase(),
+          destination: 'PENDENTE',
+          professional: 'DR. PLANTONISTA',
+          user_created: userId,
+          type: matchedPatient.diagnosis.toUpperCase().includes('RNM') ? 'RNM' : 'TC',
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          status: 'ATIVO'
+        }
+      });
 
       return {
         text: `Localizei a ficha de **${matchedPatient.name.toUpperCase()}**. \n\nDiagnóstico: **${matchedPatient.diagnosis}** \nHospital: **${matchedPatient.origin_hospital}**\n\nO que deseja fazer?`,
         sender: 'ai',
         actions: [
-          { label: 'Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(matchedPatient.name)}:::${sanitizeCirila(matchedPatient.diagnosis)}:::Dr. Plantonista:::${matchedPatient.id}:::${fileUrl}:::1:::bottom:::${sanitizeCirila(matchedPatient.origin_hospital)}:::${currentProtocol}:::${userId}` },
+          { label: 'Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(matchedPatient.name)}:::${sanitizeCirila(matchedPatient.diagnosis)}:::Dr. Plantonista:::${authKey}:::${fileUrl}:::1:::bottom:::${sanitizeCirila(matchedPatient.origin_hospital)}:::${currentProtocol}:::${userId}` },
           { label: 'Disparar E-mails', payload: `ASK_EMAIL_DISPATCH:::${matchedPatient.id}:::ALL` },
           { label: 'Ver Prontuário', payload: `NAVIGATE_PATIENT:::${matchedPatient.id}` }
         ]

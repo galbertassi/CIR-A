@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       "gabriel": { name: "Gabriel Albertassi", registro: "DCRAA / SMSVR", cargo: "Coordenador de Regulação" }
     };
 
-    const prof = profMap[professionalKey] || { name: professionalKey.toUpperCase(), registro: "REGISTRO", cargo: "CARGO" };
+    const prof = profMap[professionalKey] || { name: professionalKey.toUpperCase(), registro: "", cargo: "" };
     const dateStr = new Date().toLocaleDateString('pt-BR');
 
     const getDestination = (exam: string) => {
@@ -135,10 +135,10 @@ export async function GET(req: NextRequest) {
       const authLines = exams.map((ex, idx) => {
         return new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { before: idx === 0 ? 300 : 200 }, // Aumentado para 300/200 conforme solicitado
+          spacing: { before: idx === 0 ? 400 : 200 }, // Espaçamento extra antes da primeira autorização
           children: [
             new TextRun({
-              text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} – ${hOrigin.toUpperCase()} - ${ex.name.toUpperCase()} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
+              text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} - ${hOrigin.toUpperCase()} - ${ex.name.toUpperCase()} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
               bold: true,
               size: 20, // 10pt
               font: { name: 'Arial' },
@@ -147,6 +147,8 @@ export async function GET(req: NextRequest) {
           ],
         });
       });
+
+      const profLine = `${prof.name.toUpperCase()}${prof.registro && prof.registro !== 'REGISTRO' ? ` – ${prof.registro.toUpperCase()}` : ''}${prof.cargo && prof.cargo !== 'CARGO' ? ` – ${prof.cargo.toUpperCase()}` : ''}`;
 
       return new Table({
         width: { size: 9000, type: WidthType.DXA },
@@ -168,7 +170,7 @@ export async function GET(req: NextRequest) {
                     spacing: { before: 0, after: 0 },
                     children: [
                       new TextRun({
-                        text: `${prof.name.toUpperCase()} – ${prof.registro.toUpperCase()} – ${prof.cargo.toUpperCase()}`,
+                        text: profLine,
                         bold: true,
                         size: 20, // 10pt
                         font: { name: 'Arial' },
@@ -178,12 +180,25 @@ export async function GET(req: NextRequest) {
                   }),
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    spacing: { before: 150, after: 0 },
+                    spacing: { before: 0, after: 0 },
+                    children: [
+                      new TextRun({
+                        text: "_______________________________________________________________________________",
+                        bold: true,
+                        size: 20,
+                        font: { name: 'Arial' },
+                        color: '000000',
+                      }),
+                    ],
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 100, after: 100 },
                     children: [
                       new TextRun({
                         text: "Departamento, Controle, Regulação – Avaliação e Auditoria – DCRAA – SMSVR",
                         bold: true,
-                        size: 16, // 8pt
+                        size: 22, // 11pt
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
