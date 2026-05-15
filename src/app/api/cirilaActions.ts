@@ -167,7 +167,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
 
-      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa', 'hsc'];
+      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa', 'hsc', 'vivermais', 'hfoa'];
       const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler', 'ecodoppler'];
 
       let foundHospital = '';
@@ -179,23 +179,26 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         const w = words[i].toLowerCase();
         const w2 = i < words.length - 1 ? `${w} ${words[i+1].toLowerCase()}` : '';
         
-        // 1. Detecta Hospital (Prioridade para nomes compostos)
+        // 1. Detecta Hospital (Prioridade para nomes compostos como "viver mais")
         const compoundHospital = hospitals.find(h => h === w2);
         if (compoundHospital && hospitalIdx === -1) {
           foundHospital = w2.toUpperCase();
+          if (foundHospital === 'VIVER MAIS' || foundHospital === 'VIVERMAIS') foundHospital = 'VIVER MAIS';
           hospitalIdx = i;
           i++; // Pula a próxima palavra do nome composto
           continue;
         }
 
-        const normalizedW = w.replace(/\./g, '');
-        if (hospitalIdx === -1 && hospitals.some(h => normalizedW === h.replace(/\./g, ''))) {
-          foundHospital = normalizedW.toUpperCase();
+        const normalizedW = w.replace(/\./g, '').toLowerCase();
+        if (hospitalIdx === -1 && hospitals.some(h => normalizedW === h.replace(/\./g, '').toLowerCase())) {
           // Normalizações Institucionais Estritas
-          if (foundHospital === 'HMM') foundHospital = 'HMMR';
-          if (foundHospital === 'HFOA') foundHospital = 'HFOA';
-          if (foundHospital === 'HSC') foundHospital = 'HSC';
-          if (foundHospital === 'VIVERMAIS') foundHospital = 'VIVER MAIS';
+          if (normalizedW === 'hfoa' || normalizedW === 'h.foa') foundHospital = 'HFOA';
+          else if (normalizedW === 'hsc') foundHospital = 'HSC';
+          else if (normalizedW === 'hmm' || normalizedW === 'hmmr') foundHospital = 'HMMR';
+          else if (normalizedW === 'hsjb') foundHospital = 'HSJB';
+          else if (normalizedW === 'vivermais' || normalizedW === 'viver mais') foundHospital = 'VIVER MAIS';
+          else foundHospital = normalizedW.toUpperCase();
+          
           hospitalIdx = i;
         }
 
@@ -377,7 +380,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
               text: `Localizei **${sanName}** no hospital **${sanHosp}**. Deseja gerar a etiqueta com esses dados?`,
               sender: 'ai',
               actions: [
-                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::${currentProtocol}:::${userId}` },
+                { label: 'Sim, Gerar Etiqueta', payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanName}:::${sanDiag}:::Dr. Plantonista:::${await generateUniqueKey()}:::${possiblePatient.id}::::::1:::bottom:::${sanHosp}:::${currentProtocol}:::${userId}` },
                 { label: 'Não, informar outro', payload: 'ASK_MANUAL_ETIQUETA' }
               ]
             };

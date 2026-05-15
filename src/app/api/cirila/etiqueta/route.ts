@@ -149,6 +149,7 @@ export async function GET(req: NextRequest) {
       });
 
       const profLine = `${prof.name.toUpperCase()}${prof.registro && prof.registro !== 'REGISTRO' ? ` – ${prof.registro.toUpperCase()}` : ''}${prof.cargo && prof.cargo !== 'CARGO' ? ` – ${prof.cargo.toUpperCase()}` : ''}`;
+      const lineSeparator = "_______________________________________________________________________________";
 
       return new Table({
         width: { size: 9000, type: WidthType.DXA },
@@ -183,7 +184,7 @@ export async function GET(req: NextRequest) {
                     spacing: { before: 0, after: 0 },
                     children: [
                       new TextRun({
-                        text: "_______________________________________________________________________________",
+                        text: lineSeparator,
                         bold: true,
                         size: 20,
                         font: { name: 'Arial' },
@@ -198,11 +199,16 @@ export async function GET(req: NextRequest) {
                       new TextRun({
                         text: "Departamento, Controle, Regulação – Avaliação e Auditoria – DCRAA – SMSVR",
                         bold: true,
-                        size: 22, // 11pt
+                        size: 24, // 12pt
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
                     ],
+                  }),
+                  // Parágrafo vazio para criar o espaçamento solicitado entre o departamento e a primeira autorização
+                  new Paragraph({
+                    spacing: { before: 200, after: 0 },
+                    children: [new TextRun("")],
                   }),
                   ...authLines
                 ],

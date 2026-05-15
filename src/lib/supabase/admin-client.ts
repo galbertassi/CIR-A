@@ -3,10 +3,10 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 let supabaseInstance: any = null;
 
 /**
- * Cria ou retorna uma instância singleton do cliente Supabase com a Service Role Key.
- * Inclui fallback robusto para leitura do arquivo .env.
+ * Cria ou retorna uma instância singleton do cliente Supabase Admin (Service Role).
+ * Inclui fallback robusto para leitura de arquivo .env caso process.env falhe.
  */
-export function createClient() {
+export function getAdminClient() {
   if (supabaseInstance) return supabaseInstance;
 
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -29,9 +29,12 @@ export function createClient() {
       
       for (const envPath of envPaths) {
         const absolutePath = path.isAbsolute(envPath) ? envPath : path.resolve(rootDir, envPath);
+        
         if (fs.existsSync(absolutePath)) {
           const envContent = fs.readFileSync(absolutePath, 'utf8');
+          // Regex que aceita \r\n (Windows) e ignora espaços/aspas
           const match = envContent.match(/^SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s]+)["']?\s*$/m);
+          
           if (match && match[1]) {
             key = match[1].trim();
             if (key) break;
@@ -45,6 +48,7 @@ export function createClient() {
 
   if (!url || !key) {
     const errorMsg = `[SUPABASE_ADMIN_ERROR] Credenciais ausentes. Verifique seu arquivo .env.`;
+    console.error(errorMsg);
     throw new Error(errorMsg);
   }
 
@@ -58,13 +62,4 @@ export function createClient() {
   return supabaseInstance;
 }
 
-export const supabaseAdmin = new Proxy({} as any, {
-  get(target, prop) {
-    const client = createClient();
-    const value = client[prop];
-    if (typeof value === 'function') {
-      return value.bind(client);
-    }
-    return value;
-  }
-}) as ReturnType<typeof createSupabaseClient>;
+export const supabaseAdmin = getAdminClient();
