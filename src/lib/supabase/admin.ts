@@ -10,14 +10,51 @@ export function createClient() {
   if (supabaseInstance) return supabaseInstance;
 
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  let key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   const isServer = typeof window === 'undefined';
 
-  const envKeys = Object.keys(process.env).filter(k => k.includes('SUPABASE'));
-  console.log(`[SUPABASE_ADMIN_DEBUG] isServer=${isServer}, url_len=${url.length}, key_len=${key.length}, envKeys=[${envKeys.join(', ')}]`);
+  // LOG DE DEPURAÇÃO INICIAL (Apenas em dev/servidor)
+  if (isServer) {
+    console.log(`[SUPABASE_ADMIN_INIT] Verificando env... URL=${!!url}, KEY_ENV=${!!key}`);
+  }
+
+  // FALLBACK DE SEGURANÇA: Leitura direta do arquivo .env se o Next.js falhar no carregamento
+  if (!key && isServer) {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const rootDir = process.cwd();
+      const envPath = path.join(rootDir, '.env');
+      
+      console.log(`[SUPABASE_ADMIN_FALLBACK] Tentando ler .env em: ${envPath}`);
+      
+      if (fs.existsSync(envPath)) {
+        const envContent = fs.readFileSync(envPath, 'utf8');
+        const lines = envContent.split(/\r?\n/);
+        
+        // Tenta encontrar a chave com regex para ser mais flexível
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) {
+            const rawValue = trimmedLine.substring('SUPABASE_SERVICE_ROLE_KEY='.length);
+            key = rawValue.trim().replace(/^["']|["']$/g, '');
+            if (key) {
+              console.log(`[SUPABASE_ADMIN_FALLBACK_SUCCESS] Chave recuperada via FS. Len=${key.length}`);
+              break;
+            }
+          }
+        }
+      } else {
+        console.warn(`[SUPABASE_ADMIN_FALLBACK_WARN] Arquivo .env não encontrado.`);
+      }
+    } catch (err) {
+      console.warn('[SUPABASE_ADMIN_FALLBACK_ERROR] Falha ao ler .env manualmente:', err);
+    }
+  }
 
   if (!url || !key) {
-    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis ausentes. isServer=${isServer}, URL=${!!url} (${url.length} chars), KEY=${!!key} (${key.length} chars). Encontradas: [${envKeys.join(', ')}]. Verifique o .env e REINICIE o servidor.`;
+    const envKeys = Object.keys(process.env).filter(k => k.includes('SUPABASE'));
+    const errorMsg = `[SUPABASE_ADMIN_ERROR] Variáveis ausentes. isServer=${isServer}, URL=${!!url} (${url.length} chars), KEY=${!!key} (${key.length} chars). Encontradas no process.env: [${envKeys.join(', ')}]. Verifique o .env e REINICIE o servidor.`;
     console.error(errorMsg);
     throw new Error(errorMsg);
   }

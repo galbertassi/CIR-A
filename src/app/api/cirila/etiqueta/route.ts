@@ -30,7 +30,7 @@ async function generateSecureKey(attempts: number = 3): Promise<string> {
     const key = Array.from({ length: 5 }, () =>
       chars.charAt(Math.floor(Math.random() * chars.length))
     ).join('');
-    
+
     const exists = await prisma.authorizationKey.findFirst({ where: { key } });
     if (!exists) return key;
   }
@@ -48,17 +48,42 @@ export async function GET(req: NextRequest) {
     const hospitalOrigin = sanitizeCirila(searchParams.get('hospitalOrigin')?.replace(/\+/g, ' ') || 'HOSPITAL ORIGEM');
     const qty = parseInt(searchParams.get('qty') || '1');
     const protocolo = parseInt(searchParams.get('protocolo') || '1');
-    const mode = searchParams.get('mode'); 
+    const mode = searchParams.get('mode');
     const cns = searchParams.get('cns') || '';
 
     // VALIDAÇÃO CRÍTICA: Hospital de Origem é obrigatório
     if (!hospitalOrigin || hospitalOrigin === 'HOSPITAL ORIGEM' || hospitalOrigin.trim() === '') {
-      return new NextResponse(JSON.stringify({ 
-        error: 'O Hospital de Origem é obrigatório para a geração de etiquetas oficiais.' 
+      return new NextResponse(JSON.stringify({
+        error: 'O Hospital de Origem é obrigatório para a geração de etiquetas oficiais.'
       }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const examsList = examsRaw.split(',').map(e => e.trim());
+    const examsList = examsRaw.split(',').map(e => {
+      let ex = e.trim().toUpperCase();
+
+      // 1. Prioridade COLANGIO: deve ser COLANGIO RNM e não pode ter TC
+      if (ex.includes('COLANGIO')) {
+        ex = ex.replace(/\bTC\b/g, ''); // Remove TC intruso
+        if (!ex.includes('RNM') && !ex.includes('RMN')) {
+          ex = ex.replace('COLANGIO', 'COLANGIO RNM');
+        }
+      }
+
+      // 2. Prioridade ANGIO: deve ser ANGIO TC e não pode ter RNM/RMN
+      else if (ex.includes('ANGIO')) {
+        ex = ex.replace(/\bRNM\b|\bRMN\b/g, ''); // Remove RNM intruso
+        if (!ex.includes('TC')) {
+          ex = ex.replace('ANGIO', 'ANGIO TC');
+        }
+      }
+
+      // Limpeza final de espaços e duplicidades comuns
+      return ex.replace(/\s+/g, ' ')
+        .replace('COLANGIO RNM RNM', 'COLANGIO RNM')
+        .replace('ANGIO TC TC', 'ANGIO TC')
+        .trim();
+    });
+
     let finalExams: string[] = [];
     if (examsList.length === 1 && qty > 1) {
       finalExams = Array(qty).fill(examsList[0]);
@@ -85,39 +110,37 @@ export async function GET(req: NextRequest) {
 
     const getDestination = (exam: string) => {
       const e = exam.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      
-      // 1. Prioridade Máxima: COLANGIO (independente de RNM/TC) sempre vai para RADIO VIDA
-      if (e.includes('COLANGIO')) return 'RADIO VIDA';
-      
-      // 2. Prioridade Máxima: ANGIO sempre vai para HMMR
-      if (e.includes('ANGIO')) return 'HMMR';
-      
-      // 3. RNM / Ressonância Geral
-      if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) return 'RADIO VIDA';
-      
-      // 4. TC / Tomografia (Depende do Protocolo se não for Angio)
+
+      // 1. Prioridade Máxima: COLANGIO ou RNM -> sempre RADIO VIDA
+      if (e.includes('COLANGIO') || e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) {
+        return 'RADIO VIDA';
+      }
+
+      // 2. Prioridade Máxima: ANGIO -> sempre HMMR
+      if (e.includes('ANGIO')) {
+        return 'HMMR';
+      }
+
+      // 3. TC / Tomografia -> HSJB (Padrão) ou HMMR (Protocolo 2)
       if (e.includes('TC') || e.includes('TOMOGRAFIA')) {
         return protocolo === 2 ? 'HMMR' : 'HSJB';
       }
-      
-      // 5. Outros exames específicos
-      if (e.includes('ECO') || e.includes('ECOCARDIOGRAMA')) return 'HSJB';
-      
+
       return 'HSJB';
     };
 
     const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
       const labelBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
-      
+
       const authLines = exams.map((ex, idx) => {
         return new Paragraph({
           alignment: AlignmentType.LEFT,
-          spacing: { before: idx === 0 ? 40 : 20 },
+          spacing: { before: idx === 0 ? 300 : 200 }, // Aumentado para 300/200 conforme solicitado
           children: [
             new TextRun({
               text: `${dateStr} : ${ex.key} - ${pName.toUpperCase()} – ${hOrigin.toUpperCase()} - ${ex.name.toUpperCase()} AUTORIZADO PARA ${ex.dest.toUpperCase()}`,
               bold: true,
-              size: 24,
+              size: 20, // 10pt
               font: { name: 'Arial' },
               color: '000000',
             }),
@@ -138,30 +161,29 @@ export async function GET(req: NextRequest) {
           new TableRow({
             children: [
               new TableCell({
-                margins: { top: 100, bottom: 100, left: 100, right: 100 },
+                margins: { top: 150, bottom: 150, left: 100, right: 100 },
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    border: {
-                      bottom: {
-                        color: "000000",
-                        space: 4,
-                        style: BorderStyle.SINGLE,
-                        size: 12,
-                      },
-                    },
+                    spacing: { before: 0, after: 0 },
                     children: [
                       new TextRun({
-                        text: prof.name.toUpperCase(),
+                        text: `${prof.name.toUpperCase()} – ${prof.registro.toUpperCase()} – ${prof.cargo.toUpperCase()}`,
                         bold: true,
-                        size: 24,
+                        size: 20, // 10pt
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
+                    ],
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { before: 150, after: 0 },
+                    children: [
                       new TextRun({
-                        text: ` – ${prof.registro.toUpperCase()} – ${prof.cargo.toUpperCase()}`,
+                        text: "Departamento, Controle, Regulação – Avaliação e Auditoria – DCRAA – SMSVR",
                         bold: true,
-                        size: 24,
+                        size: 16, // 8pt
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
@@ -221,7 +243,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Layout de Blindagem (Fixed Footer) ───────────────────────────────────
-    const USABLE_HEIGHT = 15500; 
+    const USABLE_HEIGHT = 15500;
     const LABEL_HEIGHT = 3000;
 
     const createFinalDocument = (contentElements: any[]) => {
@@ -234,15 +256,15 @@ export async function GET(req: NextRequest) {
           useNormalStyleForList: true,
         },
         sections: [{
-          properties: { 
-            page: { 
+          properties: {
+            page: {
               size: {
                 width: 11906, // A4 Width in twips
                 height: 16838, // A4 Height in twips
                 orientation: PageOrientation.PORTRAIT,
               },
-              margin: { top: 500, right: 500, bottom: 500, left: 500 } 
-            } 
+              margin: { top: 500, right: 500, bottom: 500, left: 500 }
+            }
           },
           children: [
             new Table({
@@ -300,7 +322,7 @@ export async function GET(req: NextRequest) {
         if (isImage) {
           const metadata = await sharp(fileBuffer).metadata();
           // Redução adicional para garantir página única (aprox. 40% do tamanho anterior)
-          const MAX_WIDTH = 250; 
+          const MAX_WIDTH = 250;
           const MAX_HEIGHT = 350;
 
           let width = metadata.width || MAX_WIDTH;
@@ -334,21 +356,21 @@ export async function GET(req: NextRequest) {
               alignment: AlignmentType.CENTER,
               spacing: { before: 2000 },
               children: [
-                new TextRun({ 
-                  text: "ANEXO BLOQUEADO: ENVIE COMO IMAGEM", 
-                  bold: true, 
+                new TextRun({
+                  text: "ANEXO BLOQUEADO: ENVIE COMO IMAGEM",
+                  bold: true,
                   color: "FF0000",
-                  size: 24 
+                  size: 24
                 }),
-                new TextRun({ 
-                  text: "Para garantir que a etiqueta permaneça na mesma folha,", 
+                new TextRun({
+                  text: "Para garantir que a etiqueta permaneça na mesma folha,",
                   break: 1,
-                  size: 20 
+                  size: 20
                 }),
-                new TextRun({ 
-                  text: "documentos DOCX ou PDF devem ser convertidos para imagem (JPG/PNG).", 
+                new TextRun({
+                  text: "documentos DOCX ou PDF devem ser convertidos para imagem (JPG/PNG).",
                   break: 1,
-                  size: 20 
+                  size: 20
                 })
               ]
             })
@@ -358,13 +380,13 @@ export async function GET(req: NextRequest) {
     } else {
       // Modo texto / Limpo (Totalmente em branco para colagem manual)
       bodyElements = [
-        new Paragraph({ 
-          spacing: { before: 1 }, 
+        new Paragraph({
+          spacing: { before: 1 },
           children: [
-            new TextRun({ 
-              text: "", 
+            new TextRun({
+              text: "",
             })
-          ] 
+          ]
         })
       ];
     }
@@ -381,8 +403,8 @@ export async function GET(req: NextRequest) {
 
   } catch (err: any) {
     console.error('[CIRILA_ETIQUETA_ERROR]', err);
-    return new NextResponse(JSON.stringify({ 
-      error: 'Erro na geração do documento. Tente converter o anexo para imagem.' 
+    return new NextResponse(JSON.stringify({
+      error: 'Erro na geração do documento. Tente converter o anexo para imagem.'
     }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

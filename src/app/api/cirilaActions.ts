@@ -167,40 +167,49 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const leftSide = parts[0].trim();
       const rightSide = parts[1]?.trim() || '';
 
-      const hospitals = ['hmmr', 'hsjb', 'radio vida', 'hospital', 'hjv', 'retomada', 'hmpagb', 'upa', 'caism', 'viver mais', 'h.foa'];
-      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'ultrassom', 'eco', 'doppler'];
+      const hospitals = ['hmmr', 'hmm', 'hsjb', 'radio vida', 'hospital', 'retomada', 'hmpagb', 'upa', 'hnsg', 'viver mais', 'h.foa'];
+      const exams = ['tc', 'rnm', 'rmn', 'ressonancia', 'tomografia', 'angiotc', 'angio tc', 'colangio rnm', 'colangio', 'ultrassom', 'eco', 'doppler'];
 
       let foundHospital = '';
       const words = leftSide.split(/\s+/);
       let hospitalIdx = -1;
       let examIndices: number[] = [];
-      
+
       for (let i = 0; i < words.length; i++) {
         const w = words[i].toLowerCase();
-        // Detecta Hospital
-        if (hospitalIdx === -1 && hospitals.some(h => w === h || w.includes(h))) {
+        // Detecta Hospital (Match exato ou o nome do hospital contém a palavra)
+        if (hospitalIdx === -1 && hospitals.some(h => w === h || h.includes(w))) {
           foundHospital = words[i].toUpperCase();
+          // Normalização HMM -> HMMR
+          if (foundHospital === 'HMM') foundHospital = 'HMMR';
           hospitalIdx = i;
         }
-        // Detecta todos os índices de exames
+        // Detecta todos os índices de exames (com proteção para exames compostos)
         if (exams.some(e => w === e || (w.length > 2 && e.includes(w)))) {
+          // Prevenção de quebra em ANGIO TC
+          if (w === 'tc' && i > 0 && words[i - 1].toLowerCase().includes('angio')) continue;
+          // Prevenção de quebra em COLANGIO RNM
+          if ((w === 'rnm' || w === 'rmn') && i > 0 && words[i - 1].toLowerCase().includes('colangio')) continue;
+          // Prevenção de quebra se o termo anterior já for um exame
+          if (i > 0 && examIndices.includes(i - 1)) continue;
+
           examIndices.push(i);
         }
       }
-      
+
       // Se encontrou hospital e pelo menos um exame
       if (foundHospital && examIndices.length > 0) {
         const firstKeywordIdx = Math.min(hospitalIdx, examIndices[0]);
-        
+
         // O nome do paciente é tudo antes da primeira palavra-chave detectada
         const patientName = words.slice(0, firstKeywordIdx).join(' ').toUpperCase();
-        
+
         // Separar múltiplos exames
         let detectedExams: string[] = [];
         if (examIndices.length > 1) {
           for (let i = 0; i < examIndices.length; i++) {
             const start = examIndices[i];
-            const end = examIndices[i+1] || words.length;
+            const end = examIndices[i + 1] || words.length;
             let examText = words.slice(start, end).join(' ').toUpperCase();
             // Limpeza: remove o hospital se ele ficou "preso" no texto do exame
             examText = examText.replace(foundHospital, '').trim();
@@ -210,15 +219,45 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
           // Apenas um exame (padrão anterior)
           const lastKeywordIdx = Math.max(hospitalIdx, examIndices[0]);
           const examBase = words.slice(examIndices[0], lastKeywordIdx + 1)
-            .filter(w => w.toUpperCase() !== foundHospital)
+            .filter(w => w.toUpperCase() !== foundHospital && w.toUpperCase() !== 'HMM')
             .join(' ').toUpperCase();
           const extraDetails = words.slice(lastKeywordIdx + 1).join(' ').toUpperCase();
           detectedExams.push(`${examBase} ${extraDetails}`.trim());
         }
 
         // Limita a 2 exames para caber na etiqueta institucional
-        const finalExamsList = detectedExams.slice(0, 2);
-        
+        const rawExamsList = detectedExams.slice(0, 2);
+
+        // Normalização de nomes de exames conforme solicitado
+        const finalExamsList = rawExamsList.map(ex => {
+          let e = ex.toUpperCase();
+
+          // 1. Prioridade COLANGIO: deve ser COLANGIO RNM e não pode ter TC
+          if (e.includes('COLANGIO')) {
+            e = e.replace(/\bTC\b/g, ''); // Remove TC intruso
+            if (!e.includes('RNM') && !e.includes('RMN')) {
+              e = e.replace('COLANGIO', 'COLANGIO RNM');
+            }
+          }
+
+          // 2. Prioridade ANGIO: deve ser ANGIO TC e não pode ter RNM/RMN
+          else if (e.includes('ANGIO')) {
+            e = e.replace(/\bRNM\b|\bRMN\b/g, ''); // Remove RNM intruso
+            if (!e.includes('TC')) {
+              e = e.replace('ANGIO', 'ANGIO TC');
+            }
+          }
+
+          // 3. Normalização RMN -> RNM
+          e = e.replace(/\bRMN\b/g, 'RNM');
+
+          // Limpeza final de espaços e duplicidades comuns
+          return e.replace(/\s+/g, ' ')
+            .replace('COLANGIO RNM RNM', 'COLANGIO RNM')
+            .replace('ANGIO TC TC', 'ANGIO TC')
+            .trim();
+        });
+
         // Lógica de Destino e Profissional
         let destination = rightSide.replace(/PARA/i, '').trim().toUpperCase();
         const profKeys = ['inima', 'inimá', 'paola', 'carlos', 'roberto', 'sabrina', 'sabina', 'barenco', 'rosely', 'mazoni', 'gabriel'];
@@ -230,14 +269,26 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         // Geração de Chaves para Auditoria
         const keys: string[] = [];
         const destinations: string[] = [];
-        
+
         // Lógica de Destino Espelhada da API (para consistência no DB)
         const getInternalDest = (ex: string) => {
           const e = ex.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-          if (e.includes('COLANGIO')) return 'RADIO VIDA';
-          if (e.includes('ANGIO')) return 'HMMR';
-          if (e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) return 'RADIO VIDA';
-          if (e.includes('TC') || e.includes('TOMOGRAFIA')) return currentProtocol === '2' ? 'HMMR' : 'HSJB';
+
+          // 1. Prioridade: COLANGIO ou RNM -> sempre RADIO VIDA
+          if (e.includes('COLANGIO') || e.includes('RNM') || e.includes('RMN') || e.includes('RESSONANCIA')) {
+            return 'RADIO VIDA';
+          }
+
+          // 2. ANGIO TC -> sempre HMMR
+          if (e.includes('ANGIO TC')) {
+            return 'HMMR';
+          }
+
+          // 3. TC / Tomografia -> HSJB (Padrão) ou HMMR (Protocolo 2)
+          if (e.includes('TC') || e.includes('TOMOGRAFIA')) {
+            return currentProtocol === '2' ? 'HMMR' : 'HSJB';
+          }
+
           return 'HSJB';
         };
 
@@ -245,7 +296,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
           const k = await generateUniqueKey();
           const now = new Date();
           const dest = getInternalDest(ex);
-          
+
           await prisma.authorizationKey.create({
             data: {
               key: k,
@@ -266,12 +317,12 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         }
 
         return {
-          text: `✅ **${keys.length} Chaves Geradas: ${keys.join(' e ')}**\n\nIdentifiquei múltiplos exames:\n- Paciente: **${patientName}**\n- Exames: \n  ${finalExamsList.map((e, idx) => `${idx+1}. ${e} (${destinations[idx]})`).join('\n  ')}\n- Origem: **${foundHospital}**\n- Assinatura: **${foundProfessional.toUpperCase()}**`,
+          text: `✅ **${keys.length} Chaves Geradas: ${keys.join(' e ')}**\n\nIdentifiquei múltiplos exames:\n- Paciente: **${patientName}**\n- Exames: \n  ${finalExamsList.map((e, idx) => `${idx + 1}. ${e} (${destinations[idx]})`).join('\n  ')}\n- Origem: **${foundHospital}**\n- Assinatura: **${foundProfessional.toUpperCase()}**`,
           sender: 'ai',
           actions: [
-            { 
-              label: `Baixar Etiqueta (${keys.length} Chaves)`, 
-              payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(finalExamsList.join(','))}:::${foundProfessional}:::${keys.join(',')}::::::${keys.length}:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}` 
+            {
+              label: `Baixar Etiqueta (${keys.length} Chaves)`,
+              payload: `DOWNLOAD_ETIQUETA_DOCX:::${sanitizeCirila(patientName)}:::${sanitizeCirila(finalExamsList.join(','))}:::${foundProfessional}:::${keys.join(',')}::::::${keys.length}:::bottom:::${sanitizeCirila(foundHospital)}:::${currentProtocol}:::${userId}`
             }
           ]
         };
@@ -403,6 +454,12 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
     const searchTerms = lowerQuery.split(' ').filter(t => t.length > 2);
     const matchedPatient = patientsInDB.find(p => {
       const patientName = p.name.toLowerCase();
+      // Busca mais criteriosa: se a query tem "etiqueta", exige match mais forte ou evita fallback genérico
+      if (lowerQuery.includes('etiqueta') && searchTerms.length > 1) {
+        const nameParts = p.name.toLowerCase().split(' ');
+        // Verifica se todos os termos de busca (ex: "alessandra", "ferreira") estão presentes no nome do paciente
+        return searchTerms.every(term => nameParts.some(np => np.includes(term)));
+      }
       return searchTerms.some(term => patientName.includes(term)) || lowerQuery.includes(p.id.substring(0, 8));
     });
 
