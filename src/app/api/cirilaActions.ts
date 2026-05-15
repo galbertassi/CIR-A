@@ -252,7 +252,12 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
         const finalExamsList = rawExamsList.map(ex => {
           let e = ex.toUpperCase();
 
-          // 1. Prioridade COLANGIO: deve ser COLANGIO RNM e não pode ter TC
+          // 1. Limpeza de bordas: remove traços, hifens e conjunções sozinhas que ficaram no início/fim
+          e = e.replace(/^[–\-\s,eE\.]+/g, '') // Início
+               .replace(/[–\-\s,eE\.]+$/g, '') // Fim
+               .trim();
+
+          // 2. Prioridade COLANGIO: deve ser COLANGIO RNM e não pode ter TC
           if (e.includes('COLANGIO')) {
             e = e.replace(/\bTC\b/g, ''); // Remove TC intruso
             if (!e.includes('RNM') && !e.includes('RMN')) {
@@ -260,7 +265,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
             }
           }
 
-          // 2. Prioridade ANGIO: deve ser ANGIO TC e não pode ter RNM/RMN
+          // 3. Prioridade ANGIO: deve ser ANGIO TC e não pode ter RNM/RMN
           else if (e.includes('ANGIO')) {
             e = e.replace(/\bRNM\b|\bRMN\b/g, ''); // Remove RNM intruso
             if (!e.includes('TC')) {
@@ -268,7 +273,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
             }
           }
 
-          // 3. Normalização RMN -> RNM
+          // 4. Normalização RMN -> RNM
           e = e.replace(/\bRMN\b/g, 'RNM');
 
           // Limpeza final de espaços e duplicidades comuns

@@ -186,7 +186,7 @@ export async function GET(req: NextRequest) {
                       new TextRun({
                         text: lineSeparator,
                         bold: true,
-                        size: 20,
+                        size: 16, // Um pouco menor para a linha não ficar muito grossa
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
@@ -194,18 +194,18 @@ export async function GET(req: NextRequest) {
                   }),
                   new Paragraph({
                     alignment: AlignmentType.LEFT,
-                    spacing: { before: 100, after: 100 },
+                    spacing: { before: 100, after: 0 },
                     children: [
                       new TextRun({
                         text: "Departamento, Controle, Regulação – Avaliação e Auditoria – DCRAA – SMSVR",
                         bold: true,
-                        size: 24, // 12pt
+                        size: 26, // 13pt (aumentado um pouco como solicitado)
                         font: { name: 'Arial' },
                         color: '000000',
                       }),
                     ],
                   }),
-                  // Parágrafo vazio para criar o espaçamento solicitado entre o departamento e a primeira autorização
+                  // Espaçamento entre o cabeçalho e a primeira autorização
                   new Paragraph({
                     spacing: { before: 200, after: 0 },
                     children: [new TextRun("")],

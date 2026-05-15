@@ -39,13 +39,13 @@ export function createClient() {
         }
       }
     } catch (err) {
-      console.warn('[SUPABASE_ADMIN_FALLBACK_ERROR]', err);
+      // Silencioso durante build
     }
   }
 
+  // Não lançar erro aqui para evitar quebra do 'npm run build' na Vercel/CI
   if (!url || !key) {
-    const errorMsg = `[SUPABASE_ADMIN_ERROR] Credenciais ausentes. Verifique seu arquivo .env.`;
-    throw new Error(errorMsg);
+    return null;
   }
 
   supabaseInstance = createSupabaseClient(url, key, {
@@ -58,9 +58,21 @@ export function createClient() {
   return supabaseInstance;
 }
 
+/**
+ * Proxy para o cliente Supabase Admin.
+ * A inicialização é tardia (lazy) para suportar ambientes de build onde as envs 
+ * podem não estar presentes momentaneamente.
+ */
 export const supabaseAdmin = new Proxy({} as any, {
   get(target, prop) {
     const client = createClient();
+    
+    if (!client) {
+      throw new Error(
+        `[SUPABASE_ADMIN_ERROR] Credenciais ausentes. Verifique seu arquivo .env.`
+      );
+    }
+
     const value = client[prop];
     if (typeof value === 'function') {
       return value.bind(client);

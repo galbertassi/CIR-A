@@ -42,14 +42,14 @@ export function getAdminClient() {
         }
       }
     } catch (err) {
-      console.warn('[SUPABASE_ADMIN_FALLBACK_ERROR]', err);
+      // Silencioso durante build para não quebrar a CI
     }
   }
 
+  // Se as variáveis ainda estiverem ausentes, retornamos null ou lançamos erro APENAS se for uma tentativa de uso real
+  // Para o build do Next.js, não podemos lançar erro no nível do módulo.
   if (!url || !key) {
-    const errorMsg = `[SUPABASE_ADMIN_ERROR] Credenciais ausentes. Verifique seu arquivo .env.`;
-    console.error(errorMsg);
-    throw new Error(errorMsg);
+    return null;
   }
 
   supabaseInstance = createSupabaseClient(url, key, {
@@ -62,4 +62,27 @@ export function getAdminClient() {
   return supabaseInstance;
 }
 
-export const supabaseAdmin = getAdminClient();
+/**
+ * Proxy para o cliente Supabase Admin.
+ * A inicialização é "preguiçosa" (lazy): só ocorre quando o cliente é efetivamente utilizado.
+ * Isso evita que o 'npm run build' quebre na Vercel/CI caso as variáveis de ambiente 
+ * não estejam disponíveis no momento da compilação.
+ */
+export const supabaseAdmin = new Proxy({} as any, {
+  get(target, prop) {
+    const client = getAdminClient();
+    
+    if (!client) {
+      throw new Error(
+        `[SUPABASE_ADMIN_ERROR] Tentativa de usar supabaseAdmin sem credenciais configuradas. ` +
+        `Verifique SUPABASE_SERVICE_ROLE_KEY no seu ambiente.`
+      );
+    }
+
+    const value = client[prop];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  }
+}) as ReturnType<typeof createSupabaseClient>;
