@@ -8,7 +8,7 @@ let supabaseInstance: any = null;
 export function getAdminClient() {
   if (supabaseInstance) return supabaseInstance;
 
-  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+  let url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
   let key = (
     process.env.SUPABASE_SERVICE_ROLE_KEY || 
     process.env.SUPABASE_SERVICE_KEY || 
@@ -22,8 +22,8 @@ export function getAdminClient() {
                   process.env.CI === 'true' ||
                   (process.env.NODE_ENV === 'production' && !process.env.SUPABASE_SERVICE_ROLE_KEY && isServer);
 
-  // FALLBACK: Leitura direta do .env se estiver no servidor e a chave estiver vazia
-  if (!key && isServer) {
+  // FALLBACK: Leitura direta do .env se estiver no servidor e a chave ou url estiverem vazias
+  if ((!key || !url) && isServer) {
     try {
       const fs = require('fs');
       const path = require('path');
@@ -37,29 +37,40 @@ export function getAdminClient() {
         path.join(rootDir, '..', '.env'),
       ];
       
-      console.log(`[SUPABASE_ADMIN_DEBUG] Chaves ausentes. Tentando fallback FS. Root: ${rootDir}`);
+      console.log(`[SUPABASE_ADMIN_DEBUG] Chaves ou URL ausentes. Tentando fallback FS. Root: ${rootDir}`);
 
       for (const envPath of envPaths) {
         if (fs.existsSync(envPath)) {
           const envContent = fs.readFileSync(envPath, 'utf8');
           // Regex mais agressiva: ignora comentários, espaços e aceita aspas simples/duplas
-          const regexes = [
-            /^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
-            /^\s*SUPABASE_SERVICE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
-            /^\s*SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m
-          ];
+          if (!key) {
+            const regexes = [
+              /^\s*SUPABASE_SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
+              /^\s*SUPABASE_SERVICE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m,
+              /^\s*SERVICE_ROLE_KEY\s*=\s*["']?([^"'\r\n\s#]+)["']?/m
+            ];
 
-          for (const r of regexes) {
-            const match = envContent.match(r);
-            if (match && match[1]) {
-              key = match[1].trim();
-              if (key) {
-                console.log(`[SUPABASE_ADMIN_INIT] Chave carregada via fallback FS: ${envPath}`);
-                break;
+            for (const r of regexes) {
+              const match = envContent.match(r);
+              if (match && match[1]) {
+                key = match[1].trim();
+                if (key) {
+                  console.log(`[SUPABASE_ADMIN_INIT] Chave carregada via fallback FS: ${envPath}`);
+                  break;
+                }
               }
             }
           }
-          if (key) break;
+
+          if (!url) {
+            const matchUrl = envContent.match(/^\s*NEXT_PUBLIC_SUPABASE_URL\s*=\s*["']?([^"'\r\n\s#]+)["']?/m);
+            if (matchUrl && matchUrl[1]) {
+              url = matchUrl[1].trim();
+              console.log(`[SUPABASE_ADMIN_INIT] URL carregada via fallback FS: ${envPath}`);
+            }
+          }
+
+          if (key && url) break;
         }
       }
     } catch (err: any) {

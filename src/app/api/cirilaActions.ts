@@ -21,9 +21,11 @@ export type CirilaResponse = {
 /**
  * Gera uma chave alfanumérica curta e única com retry em caso de colisão
  */
-async function generateUniqueKey(attempts: number = 3): Promise<string> {
+async function generateUniqueKey(attempts: number = 3, existingKeys: string[] = []): Promise<string> {
   for (let i = 0; i < attempts; i++) {
     const key = Math.random().toString(36).substring(2, 7).toUpperCase();
+
+    if (existingKeys.includes(key)) continue;
 
     // Verificar se já existe no banco (tanto em AuthorizationKey quanto CirilaAudit)
     const exists = await prisma.authorizationKey.findFirst({ where: { key } });
@@ -32,7 +34,11 @@ async function generateUniqueKey(attempts: number = 3): Promise<string> {
     if (!exists && !existsAudit) return key;
   }
   // Se falhar após 3 tentativas (improvável para 5 caracteres), aumenta o tamanho
-  return Math.random().toString(36).substring(2, 9).toUpperCase();
+  let backupKey = Math.random().toString(36).substring(2, 9).toUpperCase();
+  while (existingKeys.includes(backupKey)) {
+    backupKey = Math.random().toString(36).substring(2, 9).toUpperCase();
+  }
+  return backupKey;
 }
 
 /**
@@ -88,7 +94,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
       const now = new Date();
 
       for (let i = 0; i < count; i++) {
-        const newKey = await generateUniqueKey();
+        const newKey = await generateUniqueKey(3, generatedKeys);
 
         try {
           await prisma.authorizationKey.create({
@@ -109,7 +115,7 @@ export async function askCirila(query: string): Promise<CirilaResponse> {
           generatedKeys.push(newKey);
         } catch (dbErr) {
           // Retry automático em caso de colisão rara não detectada pelo generateUniqueKey
-          const retryKey = await generateUniqueKey();
+          const retryKey = await generateUniqueKey(3, generatedKeys);
           await prisma.authorizationKey.create({
             data: {
               key: retryKey,
@@ -683,19 +689,23 @@ export async function executeEmailDispatch(patientId: string, targetType: string
       });
     }
 
-    // Executar envio e auditoria em transação
-    await prisma.$transaction(async (tx) => {
-      await sendHospitalNotification({
-        to: emails,
-        patientName: patient.name,
-        patientId: patient.id,
-        severity: patient.severity,
-        originHospital: patient.origin_hospital,
-        diagnosis: patient.diagnosis,
-        attachments: attachments.length > 0 ? attachments : undefined
-      });
+    // Executar envio de e-mail fora da transação do banco para evitar manter conexões abertas durante chamadas de rede lentas
+    const mailResult = await sendHospitalNotification({
+      to: emails,
+      patientName: patient.name,
+      patientId: patient.id,
+      severity: patient.severity,
+      originHospital: patient.origin_hospital,
+      diagnosis: patient.diagnosis,
+      attachments: attachments.length > 0 ? attachments : undefined
+    });
 
-      // Registrar Auditoria do Sistema (Cirila)
+    if (!mailResult.success) {
+      return { success: false, error: mailResult.error ? String(mailResult.error) : 'Falha ao enviar e-mail de notificação' };
+    }
+
+    // Registrar Auditoria do Sistema (Cirila) em transação isolada e segura
+    await prisma.$transaction(async (tx) => {
       await tx.log.create({
         data: {
           patient_id: patient.id,

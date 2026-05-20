@@ -126,7 +126,10 @@ export async function GET(req: NextRequest) {
         return protocolo === 2 ? 'HMMR' : 'HSJB';
       }
 
-          const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
+      return 'HSJB';
+    };
+
+    const createLabelTable = (exams: { name: string, key: string, dest: string }[], pName: string, hOrigin: string) => {
       const labelBorder = { style: BorderStyle.SINGLE, size: 6, color: '000000' };
 
       const authLines = exams.map((ex) => {

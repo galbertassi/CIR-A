@@ -21,6 +21,13 @@ async function main() {
       accepts_cti: true,
       accepts_clinica: true,
     },
+    {
+      name: 'Hospital Doutor Nelson Gonçalves (HNSG)',
+      email: 'transferenciasnirhnsg@gmail.com',
+      type: 'PUBLICO',
+      accepts_cti: false,
+      accepts_clinica: true,
+    },
     // REDE PRIVADA / CONTRATADA
     {
       name: 'Hospital Santa Cecília',

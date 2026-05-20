@@ -335,8 +335,6 @@ export default function ClientQueue({ initialPatients, user }: { initialPatients
 
               {filteredPatients.map((p) => {
 
-                const canOfferToHNSG = p.severity !== 'CTI' && p.severity !== 'SALA_VERMELHA';
-
                 const hospitalsToRequest = [
                   ...PUBLIC_HOSPITALS,
                   ...PRIVATE_HOSPITALS,
