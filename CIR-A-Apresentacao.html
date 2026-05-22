@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apresentação Técnica - CIR-A (Central Inteligente de Regulação Automatizada)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f172a;
+      --primary-light: #1e293b;
+      --accent: #0284c7;
+      --accent-light: #e0f2fe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --warning: #ea580c;
+      --warning-light: #ffedd5;
+      --text-dark: #0f172a;
+      --text-muted: #475569;
+      --bg-gray: #f8fafc;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dark);
+      background-color: #e2e8f0;
+      line-height: 1.5;
+      padding: 30px 10px;
+    }
+
+    /* Estrutura de Páginas de Apresentação */
+    .page {
+      max-width: 900px;
+      margin: 0 auto 30px auto;
+      background: #ffffff;
+      padding: 50px 60px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+      position: relative;
+      min-height: 1120px; /* Mantém a proporção aproximada de uma página A4 */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .page-content {
+      flex-grow: 1;
+    }
+
+    /* Capa da Apresentação */
+    .page-cover {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 80px 60px;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(2, 132, 199, 0.2);
+      border: 1px solid var(--accent);
+      color: #38bdf8;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 25px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cover-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 15px;
+      letter-spacing: -1px;
+      color: #ffffff !important;
+    }
+
+    .cover-subtitle {
+      font-size: 1.3rem;
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto 40px auto;
+      font-weight: 400;
+    }
+
+    .cover-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--warning-light);
+      color: var(--warning);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 60px;
+      border: 1px solid rgba(234, 88, 12, 0.2);
+    }
+
+    .cover-status-dot {
+      width: 10px;
+      height: 10px;
+      background-color: var(--warning);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.5; }
+    }
+
+    .cover-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 30px;
+      width: 100%;
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+
+    .cover-footer strong {
+      color: #ffffff;
+    }
+
+    /* Estilos das Páginas Internas */
+    header {
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .header-left .project-tag {
+      font-size: 0.8rem;
+      color: var(--accent);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 25px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background-color: var(--accent);
+      border-radius: 2px;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    .highlight-box {
+      background-color: var(--bg-gray);
+      border-left: 4px solid var(--accent);
+      padding: 15px;
+      border-radius: 0 8px 8px 0;
+      margin: 15px 0;
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    /* Galeria e Capturas de Tela */
+    .screenshot-container {
+      margin: 20px 0;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      background-color: #0c111d;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screenshot-container img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Ajuste para layouts horizontais ou verticais de imagem */
+    .img-portrait {
+      max-height: 480px;
+      width: auto !important;
+    }
+
+    .img-landscape {
+      width: 100%;
+      height: auto;
+    }
+
+    .screenshot-caption {
+      width: 100%;
+      padding: 12px 20px;
+      background-color: var(--bg-gray);
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .screenshot-caption strong {
+      color: var(--primary);
+    }
+
+    /* Listas e Badges */
+    .bullet-list {
+      margin: 12px 0 12px 20px;
+    }
+
+    .bullet-list li {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin: 15px 0;
+    }
+
+    .tech-card {
+      background: var(--bg-gray);
+      border: 1px solid var(--border-color);
+      padding: 15px;
+      border-radius: 8px;
+    }
+
+    .tech-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
+
+    .tech-card p {
+      font-size: 0.85rem;
+      margin: 0;
+      text-align: left;
+    }
+
+    /* Rodapé das páginas */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+      margin-top: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .footer-actions-global {
+      max-width: 900px;
+      margin: 0 auto 40px auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--primary);
+      color: #ffffff;
+      padding: 15px 30px;
+      border-radius: 12px;
+    }
+
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background-color: var(--accent);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn-print:hover {
+      background-color: #0270a5;
+    }
+
+    /* Regras de Quebra de Página para PDF */
+    @media print {
+      body {
+        background-color: #ffffff;
+        padding: 0;
+      }
+      .page {
+        margin: 0;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 40px 50px;
+        page-break-after: always;
+        min-height: 100%;
+        height: auto;
+      }
+      .page:last-child {
+        page-break-after: avoid;
+      }
+      .btn-print, .footer-actions-global {
+        display: none;
+      }
+      .screenshot-container {
+        border: 1px solid #cbd5e1;
+        background-color: #000000;
+      }
+      .tech-card {
+        border: 1px solid #cbd5e1;
+      }
+      h1, h2, h3, h4 {
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PÁGINA 1: CAPA ================= -->
+  <div class="page page-cover">
+    <div class="page-content" style="display: flex; flex-direction: column; justify-content: center; height: 100%;">
+      <div>
+        <span class="cover-badge">Engenharia de Software & IA</span>
+        <h1 class="cover-title">CIR-A</h1>
+        <div class="cover-subtitle">Central Inteligente de Regulação Automatizada</div>
+      </div>
+      
+      <div>
+        <div class="cover-status">
+          <div class="cover-status-dot"></div>
+          SISTEMA EM FASE DE VALIDAÇÃO (SMSVR)
+        </div>
+      </div>
+
+      <div style="margin-bottom: 40px; font-size: 1.05rem; color: #cbd5e1;">
+        Dossiê Técnico e Apresentação do Ecossistema Integrado para Regulação de Saúde Pública no Município de Volta Redonda / RJ
+      </div>
+    </div>
+
+    <div class="cover-footer">
+      Desenvolvido por: <strong>Gabriel Albertassi</strong> &bull; Engenheiro Full-Stack<br>
+      Tecnologias: <strong>Next.js, TypeScript, PostgreSQL, Supabase RLS, Prisma ORM, Tesseract OCR, Sharp</strong>
+    </div>
+  </div>
+
+  <!-- ================= PÁGINA 2: INTRODUÇÃO E FLUXO ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; SMSVR</span>
+          <h2>01. Introdução & Otimização do Fluxo</h2>
+        </div>
+        <div class="header-right">Estudo de Caso Técnica</div>
+      </header>
+
+      <h3 class="section-title">O Desafio na Regulação Pública</h3>
+      <p>
+        A regulação médica de leitos de terapia intensiva (CTI) e exames especializados de média e alta complexidade é um dos gargalos mais críticos do Sistema Único de Saúde (SUS). Historicamente, a Secretaria Municipal de Saúde de Volta Redonda (SMSVR) gerenciava essas filas utilizando planilhas eletrônicas desconexas, troca manual de e-mails corporativos e comunicação telefônica.
+      </p>
+      <p>
+        Esse fluxo tradicional gerava problemas graves como: atraso no tempo de resposta em casos de emergência (como acidentes vasculares cerebrais ou infartos), falta de rastreabilidade e histórico (logs) de quem autorizou ou recusou uma vaga, e a impossibilidade de auditar em tempo real a lotação dos leitos de hospitais parceiros e da rede privada conveniada.
+      </p>
+
+      <h3 class="section-title">A Solução: Engenharia do CIR-A</h3>
+      <p>
+        O <strong>CIR-A</strong> redesenhou por completo a arquitetura desse fluxo. Ao centralizar os dados dos pacientes em uma única plataforma web serverless e integrar algoritmos inteligentes de priorização, o sistema otimizou a comunicação entre o Núcleo Interno de Regulação (NIR) de cada hospital e os reguladores da central do município.
+      </p>
+
+      <div class="highlight-box">
+        <strong>Aceleração de Fluxo Comprovada:</strong> A centralização das informações reduziu o tempo médio para início do trâmite de ofertas de vagas e centralizou em um único local os desfechos (altas, óbitos e transferências), permitindo controle analítico preciso do tempo de espera e taxas de recusa.
+      </div>
+
+      <h3 class="section-title">Engenharia de Software Aplicada</h3>
+      <ul class="bullet-list">
+        <li><strong>Serverless API Routes:</strong> Garante processamento sob demanda, eliminando custos de manutenção de infraestrutura própria.</li>
+        <li><strong>Supabase Row Level Security (RLS):</strong> Proteção máxima e em conformidade estrita com a LGPD, restringindo o acesso a informações médicas apenas a usuários validados da central e dos respectivos hospitais de origem.</li>
+        <li><strong>Prisma ORM:</strong> Garante integridade referencial nas tabelas de logs, censo de leitos e chaves de regulação.</li>
+      </ul>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 2 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 3: A CIRILA (IA HÍBRIDA) ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Inteligência Artificial</span>
+          <h2>02. A Cirila e o Conceito de IA Híbrida</h2>
+        </div>
+        <div class="header-right">Inteligência Operacional</div>
+      </header>
+
+      <h3 class="section-title">A Importância da Cirila</h3>
+      <p>
+        A <strong>Cirila</strong> é a assistente inteligente integrada ao CIR-A. Ela não atua apenas como um assistente de conversação comum, mas como o cérebro analítico e operacional de apoio ao regulador municipal, detectando imediatamente anomalias e alertando sobre crises.
+      </p>
+
+      <h3 class="section-title">O que é uma Inteligência Artificial Híbrida?</h3>
+      <p>
+        Na saúde pública, a Inteligência Artificial não pode alucinar ou tomar decisões puramente estocásticas (probabilísticas), sob risco de comprometer vidas. A Cirila é classificada como uma **IA Híbrida** por integrar duas vertentes tecnológicas distintas:
+      </p>
+      <ul class="bullet-list font-size: 0.9rem;">
+        <li><strong>Camada Generativa (LLM):</strong> Fornece a interface em linguagem natural para o regulador realizar perguntas sobre a fila ("Quantas tomografias estão pendentes?", "Qual o tempo médio de espera no HSJB?"), interpretar laudos via OCR e gerar resumos clínicos rápidos das evoluções de pacientes.</li>
+        <li><strong>Camada Analítica Determinística (Regras Estritas):</strong> Executa cálculos matemáticos de gravidade clínica e regras estritas de pontuação e priorização com base em score de severidade e tempo de espera na fila, além de gerenciar chaves imutáveis. O regulador tem a segurança de que a ordem de prioridades segue protocolos clínicos definidos pela Secretaria de Saúde, sem o risco de viés de alucinação do modelo de linguagem.</li>
+      </ul>
+
+      <div class="screenshot-container">
+        <img src="public/apresentacao/chat_cirila.png" class="img-portrait" alt="Chatbot Cirila AI">
+        <div class="screenshot-caption">
+          <strong>Figura 1:</strong> Interface conversacional da <strong>Cirila AI (V2.5 Premium)</strong>. Demonstração de Alerta Clínico Máximo com análise em tempo real do score clínico dos pacientes da fila e recomendação automática de disparo de e-mails em lote.
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 3 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 4: FILA DINÂMICA ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Regulação Ativa</span>
+          <h2>03. Fila Inteligente e Ações de Regulação</h2>
+        </div>
+        <div class="header-right">Módulo de Regulação</div>
+      </header>
+
+      <h3 class="section-title">A Fila Dinâmica e Ordenação Automática</h3>
+      <p>
+        A <strong>Fila Dinâmica</strong> do CIR-A organiza os pacientes de acordo com a prioridade clínica estipulada pelo motor de classificação da Cirila. Pacientes com status de "Vaga Zero" (risco imediato de morte) são fixados no topo, seguidos pela ordem de severidade e tempo de espera acumulado.
+      </p>
+
+      <div class="screenshot-container">
+        <img src="public/apresentacao/fila_pacientes.png" class="img-landscape" alt="Painel Fila Inteligente">
+        <div class="screenshot-caption">
+          <strong>Figura 2:</strong> Painel de controle da <strong>Fila Inteligente (Fila Dinâmica)</strong>. O painel centraliza as solicitações de regulação ativa, o número de recusas registradas por hospital e ações de regulação.
+        </div>
+      </div>
+
+      <h3 class="section-title">Controle de Recusas e Ações Integradas</h3>
+      <p>
+        Conforme demonstrado na <strong>Figura 2</strong>, o sistema gerencia ativamente o histórico de recusas de cada paciente (ex: <em>"3 RECUSA(S)"</em> para leitos indicados). Isso previne que um paciente fique esquecido na fila e expõe gargalos de atendimento dos hospitais de destino.
+      </p>
+      <p>
+        Para cada linha, o regulador dispõe de ações rápidas: <strong>Anexar</strong> (laudos ou evolução clínica), <strong>Solicitar Leito</strong> (onde ocorrem os disparos de notificação ativa), <strong>Registrar Recusa</strong> (com justificativa de recusa do leito pelo hospital), <strong>Transferir</strong> (confirmando a aceitação do leito) e <strong>Saída/Alta</strong> (definindo o desfecho).
+      </p>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 4 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 5: CENSO DE LEITOS ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Capacidade Física</span>
+          <h2>04. Censo de Leitos em Tempo Real</h2>
+        </div>
+        <div class="header-right">Módulo de Capacidade</div>
+      </header>
+
+      <h3 class="section-title">Controle de Ocupação da Rede</h3>
+      <p>
+        A regulação inteligente exige conhecimento imediato da capacidade de recepção dos hospitais parceiros. O painel de <strong>Censo de Leitos</strong> fornece aos reguladores e às direções hospitalares a visão em tempo real da quantidade de leitos masculinos e femininos disponíveis, tanto para terapia intensiva (CTI) quanto para Clínica Médica.
+      </p>
+
+      <div class="screenshot-container">
+        <img src="public/apresentacao/censo_leitos.png" class="img-landscape" alt="Censo de Leitos">
+        <div class="screenshot-caption">
+          <strong>Figura 3:</strong> Interface do <strong>Censo de Leitos</strong>. Mostra a capacidade física de CTI e Clínica Médica por gênero de cada unidade hospitalar e indicação de lotação máxima.
+        </div>
+      </div>
+
+      <h3 class="section-title">Sinalização de Lotação Máxima (Sem Vagas)</h3>
+      <p>
+        Como ilustrado na <strong>Figura 3</strong>, hospitais que atingem sua ocupação máxima são sinalizados imediatamente com a marcação **"SEM VAGAS (Lotação Máxima)"**. Esta funcionalidade evita que a central de regulação perca tempo solicitando vagas a unidades saturadas.
+      </p>
+      <p>
+        O fluxo de dados do Censo de Leitos está integrado ao motor de buscas da Cirila AI. Desse modo, a assistente impede que sejam feitas recomendações automáticas de transferência para hospitais que já sinalizaram ausência de vagas no sistema, reduzindo o tempo de comunicação em ligações desnecessárias.
+      </p>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 5 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 6: DESFECHOS E AUDITORIA ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Rastreabilidade</span>
+          <h2>05. Fluxo de Desfechos e Rastreabilidade</h2>
+        </div>
+        <div class="header-right">Módulo de Auditoria</div>
+      </header>
+
+      <h3 class="section-title">Auditoria Passada e Histórico de Saídas</h3>
+      <p>
+        Em sistemas de gestão pública de saúde, a transparência e a auditoria histórica são vitais para mitigar responsabilidades jurídicas. O painel de **Fluxo de Desfechos** (Figura 4) atua como um livro de registro digital contendo o destino e a data exata da saída de cada paciente que passou pela central de regulação.
+      </p>
+
+      <div class="screenshot-container">
+        <img src="public/apresentacao/fluxo_desfechos.png" class="img-landscape" alt="Fluxo de Desfechos">
+        <div class="screenshot-caption">
+          <strong>Figura 4:</strong> Painel de <strong>Fluxo de Desfechos</strong>. Registra o histórico completo de encerramento de casos clínicos, detalhando datas, diagnósticos, origens e destinos de transferência.
+        </div>
+      </div>
+
+      <h3 class="section-title">Rastreamento de Altas, Transferências e Óbitos</h3>
+      <p>
+        Conforme ilustrado no painel, o sistema categoriza e expõe os desfechos em: <strong>Altas</strong> (alta clínica ou médica do leito de origem), <strong>Transferências</strong> (conclusão com êxito da remoção) e <strong>Óbitos</strong>.
+      </p>
+      <p>
+        Este painel oferece a funcionalidade **"Voltar para Fila"**, que permite reverter desfechos acidentais sem perda de dados históricos ou registros originais do paciente. O banco de dados no PostgreSQL mantém integridade referencial nas tabelas de log associadas a cada uma das movimentações registradas neste histórico.
+      </p>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 6 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 7: RELATÓRIOS E CONTRATOS ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Gestão Pública</span>
+          <h2>06. Relatório de Contratos Privados e Tempo de Espera</h2>
+        </div>
+        <div class="header-right">Módulo de Custos</div>
+      </header>
+
+      <h3 class="section-title">Auditoria de Leitos Conveniados</h3>
+      <p>
+        Quando a rede hospitalar pública atinge a lotação máxima de CTI, a prefeitura recorre à compra de leitos em hospitais privados conveniados. O controle financeiro e de impacto destas transferências é gerido pelo painel de **Contratos Privados** (Figura 5).
+      </p>
+
+      <div class="screenshot-container">
+        <img src="public/apresentacao/relatorio_contratos.png" class="img-landscape" alt="Relatório de Contratos Privados">
+        <div class="screenshot-caption">
+          <strong>Figura 5:</strong> Painel de <strong>Relatório de Contratos Privados</strong>. Consolida dados sobre as transferências efetuadas para leitos contratados e calcula o tempo de espera de cada regulação.
+        </div>
+      </div>
+
+      <h3 class="section-title">Gestão de Tempo de Espera</h3>
+      <p>
+        Como observado na listagem da <strong>Figura 5</strong>, o sistema calcula dinamicamente o **tempo de espera (T. Espera)** que cada paciente permaneceu na fila antes de ser transferido. Esta métrica ajuda a Secretaria Municipal de Saúde de Volta Redonda a auditar a eficiência operacional e controlar o tempo médio de regulação.
+      </p>
+      <p>
+        Os dados consolidados são apresentados em gráficos dinâmicos de barra (quantitativo de transferências por hospital conveniado) que servem para auditoria de pagamentos e análise de utilização dos contratos.
+      </p>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 7 de 8</span>
+    </footer>
+  </div>
+
+  <!-- ================= PÁGINA 8: ATRIBUTOS E SEGURANÇA ================= -->
+  <div class="page">
+    <div class="page-content">
+      <header>
+        <div class="header-left">
+          <span class="project-tag">CIR-A &bull; Atributos Finais</span>
+          <h2>07. Atributos do Sistema e Validação</h2>
+        </div>
+        <div class="header-right">Engenharia e Segurança</div>
+      </header>
+
+      <h3 class="section-title">Automação de Disparos de E-mail</h3>
+      <p>
+        O CIR-A possui um motor automático de disparos SMTP integrado ao NodeMailer. Quando a central de regulação sinaliza leitos ou quando a Cirila AI detecta fila crítica, e-mails estruturados em lote são enviados instantaneamente aos NIRs de destino. Isso agiliza o processo sem exigir que o regulador digite e-mails manualmente.
+      </p>
+
+      <h3 class="section-title">Geração de Chaves via Chatbot</h3>
+      <p>
+        A emissão de chaves oficiais de regulação para exames (TC, RNM, ECO) pode ser solicitada diretamente no chatbot da Cirila. A assistente recolhe os dados do paciente, valida no banco e gera a chave autorizadora única e imutável que é salva no histórico, garantindo uma auditoria estrita contra fraudes.
+      </p>
+
+      <h3 class="section-title">Identidade Visual & Normas Rígidas</h3>
+      <p>
+        Para garantir a formalidade oficial exigida pela SMSVR:
+      </p>
+      <ul class="bullet-list">
+        <li>Todas as etiquetas de exames geradas pelo sistema seguem o padrão institucional estrito: **CAIXA ALTA, NEGRITO e PRETO**, com formatação imutável baseada em normas locais.</li>
+        <li>A planilha de sobreaviso gerada via API segue formatação e cores corporativas imutáveis em conformidade com as regras da Secretaria.</li>
+      </ul>
+
+      <h3 class="section-title">Status Atual: Fase de Validação</h3>
+      <div class="highlight-box" style="border-left-color: var(--warning); background-color: var(--warning-light);">
+        <strong>Validação Ativa:</strong> O sistema CIR-A encontra-se atualmente em **Fase de Validação** prática e homologação de infraestrutura. A central de regulação de Volta Redonda monitora a estabilidade das Server Actions do Next.js e as integrações do banco de dados no Supabase antes da entrada em produção integral e desligamento das planilhas legadas.
+      </div>
+    </div>
+
+    <footer>
+      <span>Apresentação Técnica CIR-A</span>
+      <span>Página 8 de 8</span>
+    </footer>
+  </div>
+
+  <!-- Botão Global Flutuante de Exportação de PDF -->
+  <div class="footer-actions-global">
+    <div style="font-size: 0.9rem; font-weight: 500;">
+      Apresentação de Portfólio gerada com sucesso! Pronto para impressão em PDF.
+    </div>
+    <button class="btn-print" onclick="window.print()">
+      🖨️ Salvar Dossiê em PDF
+    </button>
+  </div>
+
+</body>
+</html>
